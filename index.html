@@ -2,50 +2,19 @@
 <html lang="zh-HK">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WeCare 營運管理系統</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-            },
-          },
-        },
-      }
-    </script>
-
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <script>
-      // 設定 PDF.js 的 Worker 路径，這是解析 PDF 必須的
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-    </script>
-
+    <script>window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
     <style>
-      /* 防止打印時出現網址同頁碼 */
-      @page {
-        margin: 0;
-      }
-      @media print {
-        body {
-          -webkit-print-color-adjust: exact;
-        }
-      }
-      /* 平滑滾動 */
-      html {
-        scroll-behavior: smooth;
-      }
+      @page { margin: 0; }
+      @media print { .no-print { display: none !important; } body { -webkit-print-color-adjust: exact; background: white; } }
     </style>
   </head>
-  <body class="bg-slate-50">
+  <body>
     <div id="root"></div>
-    
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
