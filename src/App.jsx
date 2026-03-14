@@ -10,13 +10,36 @@ import {
 } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 
-// --- Firebase 初始化 ---
-// 請確保你的環境變數已正確設置 __firebase_config
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'wecare-production';
+// ==========================================
+// ⚠️ 師兄注意：請喺度填寫你真實嘅 Firebase Config
+// 如果唔填，Vercel 係連唔到 database 㗎！
+// ==========================================
+const myFirebaseConfig = {
+  apiKey: "請貼上你的API_KEY",
+  authDomain: "請貼上你的AUTH_DOMAIN",
+  projectId: "請貼上你的PROJECT_ID",
+  storageBucket: "請貼上你的STORAGE_BUCKET",
+  messagingSenderId: "請貼上你的MESSAGING_SENDER_ID",
+  appId: "請貼上你的APP_ID"
+};
+
+// 安全初始化 Firebase (防白畫面崩潰)
+let app, auth, db, initError = null;
+const appId = 'wecare-production';
+
+try {
+  // 嘗試讀取環境變數，如果冇就用上面手填嗰個
+  const finalConfig = typeof __firebase_config !== 'undefined' && __firebase_config !== null 
+    ? JSON.parse(__firebase_config) 
+    : myFirebaseConfig;
+
+  app = initializeApp(finalConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} catch (error) {
+  console.error("Firebase 初始化失敗:", error);
+  initError = error.message;
+}
 
 // --- 常量定義 ---
 const TEXTURES = ['正', '碎', '免治', '分糊', '全糊'];
@@ -25,6 +48,21 @@ const ZONES = ['沙田及北區線', '葵青荃灣線', '觀塘線', '屯元天�
 const CUST_TYPES = ['普通個人', 'CCSV 客戶', '團體單'];
 
 export default function App() {
+  // 如果 Firebase 初始化失敗，顯示錯誤畫面而唔係白畫面
+  if (initError || !myFirebaseConfig.apiKey.startsWith("AIza")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-8 text-center">
+        <div className="bg-white p-10 rounded-3xl max-w-lg shadow-2xl">
+          <h2 className="text-2xl font-black text-red-600 mb-4">系統啟動失敗 🚨</h2>
+          <p className="text-slate-600 mb-4 font-bold">原因：找不到有效的 Firebase 設定</p>
+          <p className="text-sm text-slate-400 text-left bg-slate-100 p-4 rounded-xl font-mono break-all">
+            {initError || "請在 App.jsx 第 18 行填寫正確的 myFirebaseConfig。"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('customers'); 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -281,7 +319,7 @@ export default function App() {
                           <div className="grid grid-cols-3 gap-1">
                             {TEXTURES.map(t => (
                               <div key={t} className="flex flex-col items-center">
-                                <span className="text-[7px] text-slate-300 font-bold mb-0.5">{t}</span>
+                                <span className="text-[7px] text-slate-300 font-bold text-center">{t}</span>
                                 <input 
                                   type="number" 
                                   min="0"
@@ -311,15 +349,14 @@ export default function App() {
       {/* 側邊欄 */}
       <aside className="w-72 bg-slate-900 text-white p-8 no-print fixed h-full z-20 shadow-2xl flex flex-col">
         <div className="flex items-center gap-4 mb-16">
-          <div className="w-16 h-16 bg-white rounded-2xl p-1 overflow-hidden flex items-center justify-center shadow-inner">
+          <div className="w-14 h-14 bg-white rounded-2xl p-1 overflow-hidden flex items-center justify-center shadow-inner">
             <img src="/logo.png" alt="WeCare Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-2xl font-black italic text-orange-500 tracking-tighter leading-none">WECARE</h1>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">Ops Engine</p>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">Operations Pro</p>
           </div>
         </div>
-
         <nav className="flex-1 space-y-2">
           <button onClick={() => setActiveTab('customers')} className={`w-full text-left p-4 rounded-2xl flex items-center gap-4 ${activeTab === 'customers' ? 'bg-orange-500 shadow-lg shadow-orange-500/20 font-bold text-white' : 'text-slate-400 hover:bg-slate-800'}`}><Users size={20}/> 客戶資料管理</button>
           <button onClick={() => setActiveTab('add')} className={`w-full text-left p-4 rounded-2xl flex items-center gap-4 ${activeTab === 'add' ? 'bg-orange-500 shadow-lg shadow-orange-500/20 font-bold text-white' : 'text-slate-400 hover:bg-slate-800'}`}><Plus size={20}/> 新增客戶 (批量導入)</button>
@@ -343,7 +380,7 @@ export default function App() {
         </header>
 
         {activeTab === 'customers' && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in duration-500">
             <div className="relative max-w-xl">
               <Search className="absolute left-6 top-6 text-slate-300" size={20} />
               <input 
@@ -374,7 +411,7 @@ export default function App() {
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
               <Upload size={56} className="text-orange-500 mb-8" />
-              <h3 className="text-2xl font-black mb-4">全月訂單批量導入 (Excel)</h3>
+              <h3 className="text-2xl font-black mb-4">全月批量訂單導入 (Excel)</h3>
               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">支援「25A」或「15B-」格式。橫向填寫 1-31 號之點餐數量及類別。</p>
               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">
                 選擇檔案導入
@@ -468,7 +505,7 @@ export default function App() {
                   <th className="p-8 text-center">A餐總量</th>
                   <th className="p-8 text-center">B餐總量</th>
                   <th className="p-8 text-center">C餐總量</th>
-                  <th className="p-8 text-center">例湯總數</th>
+                  <th className="p-8 text-center">例湯數</th>
                   <th className="p-8 text-right">當日總量</th>
                 </tr>
               </thead>
