@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, ClipboardList, Printer, FileSpreadsheet, ChefHat, 
   Upload, Search, Plus, Download, Edit2, Check, X, Calendar as CalendarIcon, 
-  Soup, ArrowLeft, ArrowRight, Trash2, MapPin, Building2, BarChart3, Copy, Hash
+  Soup, ArrowLeft, ArrowRight, Trash2, MapPin, Building2, BarChart3
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -12,6 +12,7 @@ import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 
 // ==========================================
 // 🚀 正式生產環境 Firebase 設定 (WeCare DB)
+// 請確保下面係你自己嘅 Firebase API Keys
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyBs-iuaxif5Ruol0o95bvPHG7sAeBPIZCI",
@@ -57,14 +58,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('customers'); 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   
-  // 數據狀態
+  // ==========================================
+  // ⚠️ 確保呢度係空陣列 []，千萬唔好有 C002 嗰啲假資料！
+  // ==========================================
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [menus, setMenus] = useState({});
 
   // UI 狀態
   const [selectedCustomer, setSelectedCustomer] = useState(null); 
-  const [editingCustomer, setEditingCustomer] = useState(null); // 控制修改客戶資料的 Modal
+  const [editingCustomer, setEditingCustomer] = useState(null); 
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth()); 
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,36 +83,30 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // --- 數據監聽 (讀取路徑：根目錄) ---
+  // --- 數據監聽 ---
   useEffect(() => {
     if (!user) return;
-
     const unsubCust = onSnapshot(collection(db, 'customers'), (snap) => {
       const data = snap.docs.map(d => d.data());
       setCustomers(data.sort((a,b) => String(a.id).localeCompare(String(b.id))));
     });
-
     const unsubMenu = onSnapshot(collection(db, 'menus'), (snap) => {
       const mObj = {};
       snap.docs.forEach(d => mObj[d.id] = d.data());
       setMenus(mObj);
     });
-
     const q = query(collection(db, 'orders'), where("date", "==", selectedDate));
     const unsubOrders = onSnapshot(q, (snap) => {
       setOrders(snap.docs.map(d => d.data()));
     });
-
     return () => { unsubCust(); unsubMenu(); unsubOrders(); };
   }, [user, selectedDate]);
 
-  // --- 批量導入邏輯 (修復路徑 & 支援 CSV 中文) ---
+  // --- 批量導入邏輯 (支援 CSV) ---
   const handleCustImport = async (e) => {
     const file = e.target.files[0];
     if (!file || !window.XLSX) return alert("請確保已載入 XLSX 庫");
     const reader = new FileReader();
-    
-    // 使用 ArrayBuffer 解決 CSV 中文亂碼問題
     reader.onload = async (evt) => {
       try {
         const dataBuffer = new Uint8Array(evt.target.result);
@@ -120,22 +117,15 @@ export default function App() {
           const id = String(row.ID || row.id || row["客戶ID"]);
           if (id && id !== "undefined") {
             await setDoc(doc(db, 'customers', id), {
-              id: id, 
-              name: row.姓名 || row.Name || "", 
-              address: row.地址 || row.Address || "", 
-              phone: String(row.電話 || row.Phone || ""), 
-              zone: row.線路 || row.Zone || ZONES[0], 
-              type: row.類別 || row.Type || CUST_TYPES[0], 
-              institution: row.機構 || row.Institution || "", 
+              id: id, name: row.姓名 || row.Name || "", address: row.地址 || row.Address || "", 
+              phone: String(row.電話 || row.Phone || ""), zone: row.線路 || row.Zone || ZONES[0], 
+              type: row.類別 || row.Type || CUST_TYPES[0], institution: row.機構 || row.Institution || "", 
               requirement: row.特別要求 || row.Requirement || ""
             });
           }
         }
-        alert("客戶資料導入成功！請重新整理頁面。");
-      } catch (err) {
-        console.error(err);
-        alert("導入出錯，請檢查檔案格式！");
-      }
+        alert("客戶資料導入成功！");
+      } catch (err) { alert("導入出錯，請檢查檔案格式！"); }
     };
     reader.readAsArrayBuffer(file);
   };
@@ -148,7 +138,6 @@ export default function App() {
       const dataBuffer = new Uint8Array(evt.target.result);
       const wb = window.XLSX.read(dataBuffer, { type: 'array' });
       const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-      
       for (let row of data) {
         const match = row["日期"]?.match(/(\d+)月(\d+)日/);
         if (match) {
@@ -172,7 +161,6 @@ export default function App() {
       const wb = window.XLSX.read(dataBuffer, { type: 'array' });
       const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
       const monthPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-      
       for (let row of data) {
         const custId = String(row["客戶ID"] || row["ID"]);
         const texture = row["規格"] || "正";
@@ -180,7 +168,6 @@ export default function App() {
           const val = row[`${day}號`]?.toString().toUpperCase();
           if (!val) continue;
           const dateStr = `${monthPrefix}-${String(day).padStart(2, '0')}`;
-          
           const qtyMatch = val.match(/(\d+)?([ABC])(-)?/);
           if (qtyMatch) {
             const qty = parseInt(qtyMatch[1]) || 1;
@@ -207,7 +194,6 @@ export default function App() {
       if (!report[groupKey]) {
         report[groupKey] = { name: groupKey, type: cust.type, A: 0, B: 0, C: 0, Soup: 0, total: 0 };
       }
-      
       Object.keys(o.counts || {}).forEach(k => {
         const [meal] = k.split('_');
         const qty = o.counts[k] || 0;
@@ -221,7 +207,6 @@ export default function App() {
     return Object.values(report);
   }, [orders, customers]);
 
-
   // ==========================================
   // 📝 編輯與刪除客戶組件
   // ==========================================
@@ -234,9 +219,7 @@ export default function App() {
         await setDoc(doc(db, 'customers', customer.id), form, { merge: true });
         alert("資料已更新！");
         onClose();
-      } catch (err) {
-        alert("更新失敗：" + err.message);
-      }
+      } catch (err) { alert("更新失敗：" + err.message); }
     };
 
     const handleDelete = async () => {
@@ -245,9 +228,7 @@ export default function App() {
           await deleteDoc(doc(db, 'customers', customer.id));
           alert("客戶資料已徹底刪除。");
           onClose();
-        } catch (err) {
-          alert("刪除失敗：" + err.message);
-        }
+        } catch (err) { alert("刪除失敗：" + err.message); }
       }
     };
 
@@ -261,7 +242,6 @@ export default function App() {
             </div>
             <button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300 transition-colors"><X size={20}/></button>
           </div>
-          
           <div className="p-8 grid grid-cols-2 gap-6 bg-white">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">姓名</label>
@@ -296,7 +276,6 @@ export default function App() {
               <input value={form.requirement} onChange={e => setForm({...form, requirement: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="例如：要餐具、大力拍門" />
             </div>
           </div>
-
           <div className="p-8 border-t bg-slate-50 flex justify-between items-center">
             <button onClick={handleDelete} className="flex items-center gap-2 text-red-500 font-black hover:bg-red-100 p-4 rounded-2xl transition-colors"><Trash2 size={18}/> 刪除客戶</button>
             <div className="flex gap-3">
@@ -309,8 +288,9 @@ export default function App() {
     );
   };
 
-
-  // --- 數字輸入點餐月曆組件 ---
+  // ==========================================
+  // 📅 巨無霸放大版 - 月曆點餐組件
+  // ==========================================
   const CustomerCalendar = ({ customer }) => {
     const [monthOrders, setMonthOrders] = useState([]);
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -338,25 +318,27 @@ export default function App() {
     };
 
     return (
-      <div className="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-[2.5rem] w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden shadow-2xl">
-          <div className="p-8 border-b flex justify-between items-center bg-slate-50">
+      <div className="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-2">
+        {/* max-w-[98vw] 確保闊度幾乎貼邊，超級大！ */}
+        <div className="bg-white rounded-[2rem] w-full max-w-[98vw] h-[96vh] flex flex-col overflow-hidden shadow-2xl">
+          <div className="p-6 border-b flex justify-between items-center bg-slate-50">
             <div>
-              <h3 className="text-3xl font-black text-slate-800">{customer.name} - 點餐明細</h3>
-              <p className="text-xs text-slate-400 font-bold uppercase mt-1">
+              <h3 className="text-4xl font-black text-slate-800">{customer.name} - 點餐明細</h3>
+              <p className="text-sm text-slate-500 font-bold uppercase mt-2">
                 {currentYear}年 {currentMonth + 1}月 | 機構: {customer.institution || '獨立個人'}
               </p>
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setCurrentMonth(m => m === 0 ? 11 : m - 1)} className="p-3 border rounded-xl hover:bg-white"><ArrowLeft/></button>
-              <button onClick={() => setCurrentMonth(m => m === 11 ? 0 : m + 1)} className="p-3 border rounded-xl hover:bg-white"><ArrowRight/></button>
-              <button onClick={() => setSelectedCustomer(null)} className="ml-4 p-3 bg-slate-900 text-white rounded-xl hover:bg-red-500 transition-all"><X/></button>
+            <div className="flex gap-3">
+              <button onClick={() => setCurrentMonth(m => m === 0 ? 11 : m - 1)} className="p-4 border-2 rounded-2xl hover:bg-white bg-slate-50 transition-colors"><ArrowLeft size={24}/></button>
+              <button onClick={() => setCurrentMonth(m => m === 11 ? 0 : m + 1)} className="p-4 border-2 rounded-2xl hover:bg-white bg-slate-50 transition-colors"><ArrowRight size={24}/></button>
+              <button onClick={() => setSelectedCustomer(null)} className="ml-6 p-4 bg-red-500 text-white rounded-2xl hover:bg-red-600 transition-all shadow-lg"><X size={24}/></button>
             </div>
           </div>
-          <div className="flex-1 overflow-auto p-8 bg-slate-100/30">
-            <div className="grid grid-cols-7 gap-4">
+          
+          <div className="flex-1 overflow-auto p-4 bg-slate-100/50">
+            <div className="grid grid-cols-7 gap-3">
               {['日','一','二','三','四','五','六'].map(d => (
-                <div key={d} className="text-center text-[10px] font-black text-slate-300 uppercase py-2 tracking-widest">{d}</div>
+                <div key={d} className="text-center text-sm font-black text-slate-400 uppercase py-2 tracking-widest">{d}</div>
               ))}
               {[...Array(new Date(currentYear, currentMonth, 1).getDay())].map((_, i) => <div key={`empty-${i}`} />)}
               {[...Array(daysInMonth)].map((_, i) => {
@@ -367,32 +349,37 @@ export default function App() {
                 const total = Object.values(order.counts || {}).reduce((a, b) => a + b, 0);
 
                 return (
-                  <div key={day} className={`border rounded-[2rem] p-4 flex flex-col gap-3 min-h-[220px] transition-all ${total > 0 ? 'bg-white border-orange-200 shadow-lg' : 'bg-slate-50/50 opacity-60 hover:opacity-100'}`}>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-black text-slate-400">{day}</span>
+                  // 加大 min-h-[300px] 確保有足夠空間顯示 5 個輸入框
+                  <div key={day} className={`border-2 rounded-[1.5rem] p-4 flex flex-col gap-3 min-h-[300px] transition-all ${total > 0 ? 'bg-white border-orange-300 shadow-xl' : 'bg-slate-50/80 border-slate-200 opacity-70 hover:opacity-100'}`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-3xl font-black text-slate-700">{day}</span>
                       <button 
                         onClick={async () => {
                           const newNoSoup = !order.noSoup;
                           await setDoc(doc(db, 'orders', `${dateStr}_${customer.id}`), { noSoup: newNoSoup }, { merge: true });
                           setMonthOrders(prev => prev.map(o => o.date === dateStr ? {...o, noSoup: newNoSoup} : o));
                         }}
-                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${order.noSoup ? 'bg-red-500 text-white' : 'bg-emerald-100 text-emerald-600'}`}
+                        // 加大走湯按鈕
+                        className={`text-sm px-4 py-2 rounded-xl font-black shadow-sm transition-all ${order.noSoup ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
                       >
                         {order.noSoup ? '走湯' : '連湯'}
                       </button>
                     </div>
+                    
                     <div className="space-y-4 flex-1">
                       {MEALS.map(m => (
-                        <div key={m} className="space-y-1">
-                          <div className="text-[9px] font-black text-orange-500 line-clamp-1">{m}: {dayMenu[m] || '未設定'}</div>
-                          <div className="grid grid-cols-3 gap-1">
+                        <div key={m} className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                          <div className="text-xs font-black text-orange-600 mb-2 truncate">({m}) {dayMenu[m] || '未設定'}</div>
+                          {/* 完美 5 格並列設計 */}
+                          <div className="grid grid-cols-5 gap-1.5">
                             {TEXTURES.map(t => (
                               <div key={t} className="flex flex-col items-center">
-                                <span className="text-[7px] text-slate-300 font-bold text-center">{t}</span>
+                                <span className="text-[10px] text-slate-500 font-bold mb-1">{t}</span>
                                 <input 
                                   type="number" min="0" value={order.counts[`${m}_${t}`] || ''} 
                                   onChange={(e) => updateQty(dateStr, m, t, e.target.value)}
-                                  className="w-full bg-slate-100 rounded p-1 text-[10px] font-black text-center outline-none focus:ring-1 focus:ring-orange-500"
+                                  // 加大輸入框
+                                  className="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm font-black text-center outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                                   placeholder="0"
                                 />
                               </div>
@@ -467,10 +454,10 @@ export default function App() {
                   <div className="mt-2 flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest"><Building2 size={12}/> {c.institution || "獨立個人"}</div>
                   <p className="text-xs text-slate-400 mt-6 leading-relaxed grow line-clamp-2"><MapPin size={12} className="inline mr-2"/>{c.address}</p>
                   
-                  {/* === 新增的編輯按鈕列 === */}
+                  {/* 修改：加入編輯按鈕 */}
                   <div className="mt-8 flex gap-3 pt-6 border-t border-slate-50">
                     <button onClick={() => setSelectedCustomer(c)} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-orange-600 transition-all shadow-lg active:scale-95">全月點餐月曆</button>
-                    <button onClick={() => setEditingCustomer(c)} className="p-4 border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all" title="修改或刪除客戶">
+                    <button onClick={() => setEditingCustomer(c)} className="p-4 border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all shadow-sm bg-white" title="修改或刪除客戶">
                       <Edit2 size={18}/>
                     </button>
                   </div>
@@ -487,16 +474,14 @@ export default function App() {
               <h3 className="text-2xl font-black mb-4">全月批量訂單導入 (Excel)</h3>
               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">支援「25A」或「15B-」格式。橫向填寫 1-31 號之點餐數量及類別。</p>
               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">
-                選擇檔案導入
-                <input type="file" onChange={handleMassImportOrders} className="hidden" />
+                選擇檔案導入<input type="file" onChange={handleMassImportOrders} className="hidden" />
               </label>
             </div>
             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
               <Users size={56} className="text-blue-500 mb-8" />
               <h3 className="text-2xl font-black mb-4">批量導入客戶基本資料表</h3>
               <label className="bg-blue-600 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-blue-700 transition-all shadow-xl active:scale-95">
-                選擇客戶表導入
-                <input type="file" onChange={handleCustImport} className="hidden" />
+                選擇客戶表導入<input type="file" onChange={handleCustImport} className="hidden" />
               </label>
             </div>
           </div>
@@ -509,8 +494,7 @@ export default function App() {
               <h3 className="text-2xl font-black mb-4">批量導入每月餐單內容</h3>
               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold tracking-widest uppercase">格式：日期（4月1日）、(A餐)款式、(B餐)款式、(C餐)款式、(例湯)</p>
               <label className="bg-emerald-600 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-emerald-700 transition-all shadow-xl active:scale-95">
-                選擇餐單導入
-                <input type="file" onChange={handleMenuImport} className="hidden" />
+                選擇餐單導入<input type="file" onChange={handleMenuImport} className="hidden" />
               </label>
             </div>
           </div>
@@ -523,7 +507,7 @@ export default function App() {
                   <h4 className="font-black text-orange-800">準備打印出餐標籤</h4>
                   <p className="text-xs text-orange-600 font-bold uppercase mt-1">當日有訂單的客戶: {orders.filter(o => Object.values(o.counts || {}).reduce((a, b) => a + b, 0) > 0).length} 位</p>
                 </div>
-                <button onClick={() => window.print()} className="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-orange-500/30 active:scale-95">列印所有標籤</button>
+                <button onClick={() => window.print()} className="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-orange-500/30">列印所有標籤</button>
              </div>
              
              <div className="grid grid-cols-2 gap-4">
@@ -554,7 +538,7 @@ export default function App() {
                              </div>
                           )}
                        </div>
-                       <div className="text-[10px] text-red-600 italic mt-2">{c.requirement || "無"}</div>
+                       <div className="text-[10px] text-red-600 italic mt-2">{c.requirement || "無備註"}</div>
                     </div>
                   );
                 })}
@@ -607,7 +591,7 @@ export default function App() {
       <style>{`
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         @media print {
           .no-print { display: none !important; }
           main { margin-left: 0 !important; padding: 0 !important; background: white; }
