@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, ClipboardList, Printer, FileSpreadsheet, Settings, 
-  ChefHat, Upload, Lock, History, Search, Plus
+  ChefHat, Upload, History, Search, Plus
 } from 'lucide-react';
 import { collection, onSnapshot, doc, setDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
@@ -24,11 +24,17 @@ export default function WeCareUltimateSystem() {
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (user) => setIsAuthenticated(!!user));
     if (isAuthenticated) {
-      onSnapshot(collection(db, "customers"), (s) => setCustomers(s.docs.map(d => d.data())));
-      onSnapshot(doc(db, "menus", selectedDate), (d) => setMenuNames(d.exists() ? d.data() : { A: '', B: '', C: '', Soup: '' }));
-      onSnapshot(query(collection(db, "orders"), where("date", "==", selectedDate)), (s) => setOrders(s.docs.map(d => d.data())));
+      // 核心監聽：確保客戶名單即時更新
+      onSnapshot(collection(db, "customers"), (s) => {
+        setCustomers(s.docs.map(d => d.data()).sort((a,b) => a.id - b.id));
+      });
+      onSnapshot(doc(db, "menus", selectedDate), (d) => {
+        setMenuNames(d.exists() ? d.data() : { A: '', B: '', C: '', Soup: '' });
+      });
+      onSnapshot(query(collection(db, "orders"), where("date", "==", selectedDate)), (s) => {
+        setOrders(s.docs.map(d => d.data()));
+      });
     }
-    return () => unsubAuth();
   }, [isAuthenticated, selectedDate]);
 
   const handleImport = (e, type) => {
@@ -40,25 +46,28 @@ export default function WeCareUltimateSystem() {
       for (let row of data) {
         if (type === 'menu') {
           const match = row["日期"]?.match(/(\d+)月(\d+)日/);
-          if (match && row["(A餐)款式"]) {
+          if (match) {
             const date = `2026-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}`;
             await setDoc(doc(db, "menus", date), {
               A: row["(A餐)款式"] || "", B: row["(B餐)款式"] || "", C: row["(C餐)款式"] || "", Soup: row["(例湯)"] || ""
             });
           }
         } else {
-          await setDoc(doc(db, "customers", String(row.ID)), { ...row, id: String(row.ID) });
+          // ID 轉為 String 以防 Firebase 出錯
+          const id = String(row.ID || row.id);
+          await setDoc(doc(db, "customers", id), {
+            id,
+            name: row.姓名 || row.name,
+            address: row.地址 || row.address,
+            phone: row.電話 || row.phone || "",
+            zone: row.線路 || row.zone,
+            requirement: row.特別要求 || row.requirement || ""
+          });
         }
       }
-      alert("導入完成！");
+      alert("數據導入成功！");
     };
     reader.readAsBinaryString(file);
-  };
-
-  const addCustomer = async () => {
-    if (!newCust.id || !newCust.name) return alert("請輸入編號及姓名");
-    await setDoc(doc(db, "customers", newCust.id), newCust);
-    setNewCust({ id: '', name: '', address: '', phone: '', zone: ZONES[0] });
   };
 
   if (!isAuthenticated) return (
@@ -67,7 +76,7 @@ export default function WeCareUltimateSystem() {
         <h2 className="text-2xl font-bold mb-6 text-center">WeCare 登入</h2>
         <input type="email" placeholder="電郵" className="w-full border p-3 rounded-xl mb-4" onChange={e => setLoginData({...loginData, email: e.target.value})} />
         <input type="password" placeholder="密碼" className="w-full border p-3 rounded-xl mb-6" onChange={e => setLoginData({...loginData, password: e.target.value})} />
-        <button onClick={() => signInWithEmailAndPassword(auth, loginData.email, loginData.password)} className="w-full bg-orange-500 text-white py-3 rounded-xl font-bold">登入</button>
+        <button onClick={() => signInWithEmailAndPassword(auth, loginData.email, loginData.password)} className="w-full bg-orange-500 text-white py-3 rounded-xl font-bold">登入系統</button>
       </div>
     </div>
   );
@@ -75,23 +84,25 @@ export default function WeCareUltimateSystem() {
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
       <aside className="w-64 bg-slate-800 text-white p-6 no-print">
-        <div className="text-orange-400 font-black text-xl mb-8">WECARE PRO</div>
+        <div className="text-orange-400 font-black text-xl mb-8 tracking-tighter">WECARE PRO</div>
         <nav className="space-y-2">
-          <button onClick={() => setActiveTab('batch')} className={`w-full text-left p-3 rounded-xl ${activeTab === 'batch' ? 'bg-orange-500' : ''}`}>每日入單</button>
-          <button onClick={() => setActiveTab('labels')} className={`w-full text-left p-3 rounded-xl ${activeTab === 'labels' ? 'bg-orange-500' : ''}`}>打印標籤</button>
-          <button onClick={() => setActiveTab('customers')} className={`w-full text-left p-3 rounded-xl ${activeTab === 'customers' ? 'bg-blue-600' : ''}`}>客戶管理</button>
-          <button onClick={() => setActiveTab('import')} className={`w-full text-left p-3 rounded-xl ${activeTab === 'import' ? 'bg-slate-700' : ''}`}>批量導入</button>
+          <button onClick={() => setActiveTab('batch')} className={`w-full text-left p-3 rounded-xl ${activeTab === 'batch' ? 'bg-orange-600' : 'hover:bg-slate-700'}`}>每日入單</button>
+          <button onClick={() => setActiveTab('labels')} className={`w-full text-left p-3 rounded-xl ${activeTab === 'labels' ? 'bg-orange-600' : 'hover:bg-slate-700'}`}>打印標籤</button>
+          <button onClick={() => setActiveTab('customers')} className={`w-full text-left p-3 rounded-xl ${activeTab === 'customers' ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>客戶管理</button>
+          <button onClick={() => setActiveTab('import')} className={`w-full text-left p-3 rounded-xl ${activeTab === 'import' ? 'bg-slate-700' : 'hover:bg-slate-800'}`}>批量導入</button>
         </nav>
       </aside>
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 overflow-auto">
         <div className="flex justify-between items-center mb-8 no-print">
           <h2 className="text-2xl font-bold uppercase">{activeTab}</h2>
-          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="border p-2 rounded-xl font-bold" />
+          <div className="flex gap-4">
+            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="border p-2 rounded-xl font-bold text-slate-700" />
+          </div>
         </div>
 
         {activeTab === 'batch' && (
-          <div className="bg-white rounded-2xl shadow-sm border overflow-x-auto">
+          <div className="bg-white rounded-2xl shadow-sm border">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b">
                 <tr>
@@ -100,26 +111,26 @@ export default function WeCareUltimateSystem() {
                   <th className="p-4">備註</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {customers.map(c => {
                   const order = orders.find(o => o.customerId === c.id) || { counts: {} };
                   return (
-                    <tr key={c.id} className="border-b">
-                      <td className="p-4 font-bold">{c.name}<div className="text-[10px] text-slate-400">{c.zone}</div></td>
+                    <tr key={c.id} className="hover:bg-slate-50">
+                      <td className="p-4"><div className="font-bold">{c.name}</div><div className="text-[10px] text-slate-400">{c.zone}</div></td>
                       {TEXTURES.map(t => (
-                        <td key={t} className="p-2 border-x">
+                        <td key={t} className="p-2 border-x bg-slate-50/20">
                           {MEALS.map(m => (
                             <div key={m} className="flex items-center gap-1 mb-1">
-                              <span className="text-[9px] w-3">{m}</span>
+                              <span className="text-[9px] w-3 font-bold">{m}</span>
                               <input type="number" value={order.counts?.[`${m}_${t}`] || ''} onChange={async (e) => {
                                 const val = parseInt(e.target.value) || 0;
                                 await setDoc(doc(db, "orders", `${selectedDate}_${c.id}`), { ...order, date: selectedDate, customerId: c.id, counts: { ...order.counts, [`${m}_${t}`]: val } });
-                              }} className="w-10 border rounded text-center text-xs" />
+                              }} className="w-12 border rounded text-center text-xs p-1 focus:ring-1 focus:ring-orange-500" />
                             </div>
                           ))}
                         </td>
                       ))}
-                      <td className="p-4"><input className="w-full border rounded p-1" value={order.notes || ''} onChange={async (e) => await setDoc(doc(db, "orders", `${selectedDate}_${c.id}`), { ...order, date: selectedDate, customerId: c.id, notes: e.target.value }, { merge: true })} /></td>
+                      <td className="p-4"><input className="w-full border rounded p-2 text-xs" value={order.notes || ''} onChange={async (e) => await setDoc(doc(db, "orders", `${selectedDate}_${c.id}`), { ...order, date: selectedDate, customerId: c.id, notes: e.target.value }, { merge: true })} /></td>
                     </tr>
                   )
                 })}
@@ -132,12 +143,12 @@ export default function WeCareUltimateSystem() {
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-white p-8 rounded-3xl border-2 border-dashed text-center">
               <ChefHat size={40} className="mx-auto text-orange-500 mb-4"/>
-              <h3 className="font-bold mb-4">導入每月餐單 (做法 A)</h3>
+              <h3 className="font-bold mb-4">導入月份餐單 (做法 A)</h3>
               <input type="file" onChange={(e) => handleImport(e, 'menu')} className="text-sm" />
             </div>
             <div className="bg-white p-8 rounded-3xl border-2 border-dashed text-center">
               <Users size={40} className="mx-auto text-blue-500 mb-4"/>
-              <h3 className="font-bold mb-4">導入客戶名單</h3>
+              <h3 className="font-bold mb-4">導入客戶名單 (Excel)</h3>
               <input type="file" onChange={(e) => handleImport(e, 'cust')} className="text-sm" />
             </div>
           </div>
