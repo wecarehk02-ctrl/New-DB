@@ -15,12 +15,13 @@ import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 // 如果唔填，Vercel 係連唔到 database 㗎！
 // ==========================================
 const myFirebaseConfig = {
-  apiKey: "請貼上你的API_KEY",
-  authDomain: "請貼上你的AUTH_DOMAIN",
-  projectId: "請貼上你的PROJECT_ID",
-  storageBucket: "請貼上你的STORAGE_BUCKET",
-  messagingSenderId: "請貼上你的MESSAGING_SENDER_ID",
-  appId: "請貼上你的APP_ID"
+  apiKey: "AIzaSyBs-iuaxif5Ruol0o95bvPHG7sAeBPIZCI",
+  authDomain: "wecare-db-257a2.firebaseapp.com",
+  projectId: "wecare-db-257a2",
+  storageBucket: "wecare-db-257a2.firebasestorage.app",
+  messagingSenderId: "9382815598",
+  appId: "1:9382815598:web:0204da895acae71ba5037f",
+  measurementId: "G-HZYF083SFN"
 };
 
 // 安全初始化 Firebase (防白畫面崩潰)
