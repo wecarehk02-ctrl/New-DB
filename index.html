@@ -1,13 +1,79 @@
-<!DOCTYPE html>
-<html lang="zh-HK">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WeCare 送餐系統</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+import React, { useState, useEffect } from 'react';
+// ... (保留之前的 Firebase imports)
+
+export default function WeCareSystem() {
+  // 1. 擴展客戶資料欄位
+  const [customerFields, setCustomerFields] = useState([
+    { id: 'name', label: '姓名', type: 'text' },
+    { id: 'phone', label: '電話', type: 'text' },
+    { id: 'address', label: '地址', type: 'text' },
+    { id: 'zone', label: '派送線路', type: 'select', options: ['沙田及北區線', '葵青荃灣線', '觀塘線', '屯元天線', '土瓜環步兵'] },
+    { id: 'texture', label: '規格', type: 'select', options: ['正', '碎', '全糊', '分糊'] },
+    { id: 'requirement', label: '特別要求', type: 'text' }
+  ]);
+
+  // 2. Excel 匯出功能 (支援給不同 Party)
+  const exportToExcel = (data, fileName) => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, `${fileName}_${selectedDate}.xlsx`);
+  };
+
+  // 3. 專為「豪哥 (司機)」設計的匯出格式 
+  const handleDriverExport = () => {
+    const driverData = orders
+      .filter(o => o.date === selectedDate)
+      .map(o => {
+        const c = customers.find(cust => cust.id === o.customerId);
+        return {
+          "線路": c.zone,
+          "姓名": c.name,
+          "電話": c.phone,
+          "地址": c.address,
+          "特別要求": c.requirement || o.notes
+        };
+      });
+    exportToExcel(driverData, "豪哥派送名單");
+  };
+
+  return (
+    <div className="flex">
+      {/* 側邊欄增加「報表中心」 */}
+      <nav className="w-64 bg-slate-800 text-white p-4">
+        <h2 className="font-bold mb-4">WeCare 營運系統</h2>
+        <button onClick={() => setActiveTab('menu')} className="block w-full text-left p-2 hover:bg-slate-700">📅 每日菜單上傳</button>
+        <button onClick={() => setActiveTab('export')} className="block w-full text-left p-2 hover:bg-slate-700">📊 報表匯出 (Excel)</button>
+      </nav>
+
+      <main className="flex-1 p-8">
+        {/* 菜單管理分頁 */}
+        {activeTab === 'menu' && (
+          <div className="bg-white p-6 rounded-xl border shadow">
+            <h3 className="text-lg font-bold mb-4">一次過設定今日菜單 </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <input placeholder="A餐菜名" onChange={(e)=>saveMenu('A', e.target.value)} className="border p-2" />
+              <input placeholder="B餐菜名" onChange={(e)=>saveMenu('B', e.target.value)} className="border p-2" />
+              <input placeholder="C餐菜名" onChange={(e)=>saveMenu('C', e.target.value)} className="border p-2" />
+              <input placeholder="今日例湯" onChange={(e)=>saveMenu('Soup', e.target.value)} className="border p-2" />
+            </div>
+          </div>
+        )}
+
+        {/* 報表匯出分頁 */}
+        {activeTab === 'export' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 border rounded shadow hover:bg-slate-50 cursor-pointer" onClick={handleDriverExport}>
+              <h4 className="font-bold">🚚 司機派送表 (豪哥格式)</h4>
+              <p className="text-xs text-slate-500">包含電話、地址及特別要求 </p>
+            </div>
+            <div className="p-4 border rounded shadow hover:bg-slate-50 cursor-pointer" onClick={() => exportKitchenData()}>
+              <h4 className="font-bold">👨‍🍳 廚房總計表</h4>
+              <p className="text-xs text-slate-500">今日 ABC 餐及湯水總數 </p>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
