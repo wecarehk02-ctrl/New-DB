@@ -64,6 +64,7 @@ export default function App() {
 
   // UI 狀態
   const [selectedCustomer, setSelectedCustomer] = useState(null); 
+  const [editingCustomer, setEditingCustomer] = useState(null); // 控制修改客戶資料的 Modal
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth()); 
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
@@ -118,7 +119,6 @@ export default function App() {
         for (let row of data) {
           const id = String(row.ID || row.id || row["客戶ID"]);
           if (id && id !== "undefined") {
-            // 修復寫入路徑：直接寫入 'customers'
             await setDoc(doc(db, 'customers', id), {
               id: id, 
               name: row.姓名 || row.Name || "", 
@@ -153,7 +153,6 @@ export default function App() {
         const match = row["日期"]?.match(/(\d+)月(\d+)日/);
         if (match) {
           const dateStr = `2026-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}`;
-          // 修復寫入路徑：直接寫入 'menus'
           await setDoc(doc(db, 'menus', dateStr), {
             A: row["(A餐)款式"] || "", B: row["(B餐)款式"] || "", C: row["(C餐)款式"] || "", Soup: row["(例湯)"] || ""
           });
@@ -187,7 +186,6 @@ export default function App() {
             const qty = parseInt(qtyMatch[1]) || 1;
             const meal = qtyMatch[2];
             const skipSoup = qtyMatch[3] !== undefined;
-            // 修復寫入路徑：直接寫入 'orders'
             await setDoc(doc(db, 'orders', `${dateStr}_${custId}`), {
               date: dateStr, customerId: custId, counts: { [`${meal}_${texture}`]: qty }, noSoup: skipSoup
             }, { merge: true });
@@ -223,6 +221,95 @@ export default function App() {
     return Object.values(report);
   }, [orders, customers]);
 
+
+  // ==========================================
+  // 📝 編輯與刪除客戶組件
+  // ==========================================
+  const CustomerEditModal = ({ customer, onClose }) => {
+    const [form, setForm] = useState(customer);
+
+    const handleSave = async () => {
+      if (!form.name) return alert("姓名不能為空！");
+      try {
+        await setDoc(doc(db, 'customers', customer.id), form, { merge: true });
+        alert("資料已更新！");
+        onClose();
+      } catch (err) {
+        alert("更新失敗：" + err.message);
+      }
+    };
+
+    const handleDelete = async () => {
+      if (window.confirm(`⚠️ 警告：確定要永久刪除客戶「${customer.name}」嗎？\n此操作無法復原，請確認！`)) {
+        try {
+          await deleteDoc(doc(db, 'customers', customer.id));
+          alert("客戶資料已徹底刪除。");
+          onClose();
+        } catch (err) {
+          alert("刪除失敗：" + err.message);
+        }
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-[2.5rem] w-full max-w-3xl overflow-hidden shadow-2xl">
+          <div className="p-8 border-b flex justify-between items-center bg-slate-50">
+            <div>
+              <h3 className="text-2xl font-black text-slate-800">修改客戶資料</h3>
+              <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">ID: {customer.id}</p>
+            </div>
+            <button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300 transition-colors"><X size={20}/></button>
+          </div>
+          
+          <div className="p-8 grid grid-cols-2 gap-6 bg-white">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">姓名</label>
+              <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">聯絡電話</label>
+              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">派送地址</label>
+              <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">派送線路</label>
+              <select value={form.zone} onChange={e => setForm({...form, zone: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold appearance-none">
+                {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">客戶類別</label>
+              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold appearance-none">
+                {CUST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">對數機構 (如有)</label>
+              <input value={form.institution} onChange={e => setForm({...form, institution: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="例如：東華三院" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">特別要求 / 備註</label>
+              <input value={form.requirement} onChange={e => setForm({...form, requirement: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="例如：要餐具、大力拍門" />
+            </div>
+          </div>
+
+          <div className="p-8 border-t bg-slate-50 flex justify-between items-center">
+            <button onClick={handleDelete} className="flex items-center gap-2 text-red-500 font-black hover:bg-red-100 p-4 rounded-2xl transition-colors"><Trash2 size={18}/> 刪除客戶</button>
+            <div className="flex gap-3">
+              <button onClick={onClose} className="font-black text-slate-400 px-6 py-4 hover:text-slate-600 transition-colors">取消</button>
+              <button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl hover:bg-emerald-500 transition-colors shadow-lg active:scale-95 flex items-center gap-2"><Check size={18}/> 儲存修改</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
   // --- 數字輸入點餐月曆組件 ---
   const CustomerCalendar = ({ customer }) => {
     const [monthOrders, setMonthOrders] = useState([]);
@@ -231,7 +318,6 @@ export default function App() {
     useEffect(() => {
       const fetchMonthData = async () => {
         const prefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-        // 修復讀取路徑
         const q = query(collection(db, 'orders'), where("customerId", "==", customer.id));
         const s = await getDocs(q);
         setMonthOrders(s.docs.map(d => d.data()).filter(o => o.date.startsWith(prefix)));
@@ -244,12 +330,9 @@ export default function App() {
       const orderId = `${dateStr}_${customer.id}`;
       const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, noSoup: false };
       const newOrder = {
-        ...existing,
-        date: dateStr,
-        customerId: customer.id,
+        ...existing, date: dateStr, customerId: customer.id,
         counts: { ...existing.counts, [`${meal}_${texture}`]: qty }
       };
-      // 修復寫入路徑
       await setDoc(doc(db, 'orders', orderId), newOrder, { merge: true });
       setMonthOrders(prev => [...prev.filter(o => o.date !== dateStr), newOrder]);
     };
@@ -290,7 +373,6 @@ export default function App() {
                       <button 
                         onClick={async () => {
                           const newNoSoup = !order.noSoup;
-                          // 修復寫入路徑
                           await setDoc(doc(db, 'orders', `${dateStr}_${customer.id}`), { noSoup: newNoSoup }, { merge: true });
                           setMonthOrders(prev => prev.map(o => o.date === dateStr ? {...o, noSoup: newNoSoup} : o));
                         }}
@@ -302,15 +384,13 @@ export default function App() {
                     <div className="space-y-4 flex-1">
                       {MEALS.map(m => (
                         <div key={m} className="space-y-1">
-                          <div className="text-[9px] font-black text-orange-500 line-clamp-1">{m}: {dayMenu[m] || '未設定菜名'}</div>
+                          <div className="text-[9px] font-black text-orange-500 line-clamp-1">{m}: {dayMenu[m] || '未設定'}</div>
                           <div className="grid grid-cols-3 gap-1">
                             {TEXTURES.map(t => (
                               <div key={t} className="flex flex-col items-center">
                                 <span className="text-[7px] text-slate-300 font-bold text-center">{t}</span>
                                 <input 
-                                  type="number" 
-                                  min="0"
-                                  value={order.counts[`${m}_${t}`] || ''}
+                                  type="number" min="0" value={order.counts[`${m}_${t}`] || ''} 
                                   onChange={(e) => updateQty(dateStr, m, t, e.target.value)}
                                   className="w-full bg-slate-100 rounded p-1 text-[10px] font-black text-center outline-none focus:ring-1 focus:ring-orange-500"
                                   placeholder="0"
@@ -373,12 +453,11 @@ export default function App() {
               <input 
                 placeholder="搜尋姓名、地址、編號或機構..." 
                 className="w-full pl-16 pr-8 py-6 rounded-[2rem] shadow-sm border-none outline-none focus:ring-4 focus:ring-orange-500/10 font-bold text-lg transition-all"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)} 
+                value={searchTerm} onChange={e => setSearchTerm(e.target.value)} 
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {customers.filter(c => c.name.includes(searchTerm) || c.institution.includes(searchTerm)).map(c => (
+              {customers.filter(c => c.name.includes(searchTerm) || c.institution.includes(searchTerm) || c.id.includes(searchTerm)).map(c => (
                 <div key={c.id} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group flex flex-col h-full">
                   <div className="flex justify-between items-start mb-6">
                     <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${c.type === 'CCSV 客戶' ? 'bg-blue-50 text-blue-500' : c.type === '團體單' ? 'bg-orange-50 text-orange-500' : 'bg-slate-100 text-slate-400'}`}>{c.type}</span>
@@ -387,7 +466,14 @@ export default function App() {
                   <h4 className="text-2xl font-black text-slate-800 leading-tight">{c.name}</h4>
                   <div className="mt-2 flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest"><Building2 size={12}/> {c.institution || "獨立個人"}</div>
                   <p className="text-xs text-slate-400 mt-6 leading-relaxed grow line-clamp-2"><MapPin size={12} className="inline mr-2"/>{c.address}</p>
-                  <button onClick={() => setSelectedCustomer(c)} className="mt-8 py-4 bg-slate-900 text-white rounded-3xl font-black text-xs hover:bg-orange-600 transition-all shadow-xl active:scale-95">進入點餐管理</button>
+                  
+                  {/* === 新增的編輯按鈕列 === */}
+                  <div className="mt-8 flex gap-3 pt-6 border-t border-slate-50">
+                    <button onClick={() => setSelectedCustomer(c)} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-orange-600 transition-all shadow-lg active:scale-95">全月點餐月曆</button>
+                    <button onClick={() => setEditingCustomer(c)} className="p-4 border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all" title="修改或刪除客戶">
+                      <Edit2 size={18}/>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -437,7 +523,7 @@ export default function App() {
                   <h4 className="font-black text-orange-800">準備打印出餐標籤</h4>
                   <p className="text-xs text-orange-600 font-bold uppercase mt-1">當日有訂單的客戶: {orders.filter(o => Object.values(o.counts || {}).reduce((a, b) => a + b, 0) > 0).length} 位</p>
                 </div>
-                <button onClick={() => window.print()} className="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-orange-500/30">列印所有標籤</button>
+                <button onClick={() => window.print()} className="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-orange-500/30 active:scale-95">列印所有標籤</button>
              </div>
              
              <div className="grid grid-cols-2 gap-4">
@@ -468,7 +554,7 @@ export default function App() {
                              </div>
                           )}
                        </div>
-                       <div className="text-[10px] text-red-600 italic mt-2">{c.requirement || "無備註"}</div>
+                       <div className="text-[10px] text-red-600 italic mt-2">{c.requirement || "無"}</div>
                     </div>
                   );
                 })}
@@ -481,7 +567,7 @@ export default function App() {
             <div className="p-10 border-b flex justify-between items-center bg-slate-50/50">
                <div>
                  <h3 className="font-black text-2xl tracking-tighter">機構對數月度彙報</h3>
-                 <p className="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">目前顯示日期：{selectedDate}</p>
+                 <p className="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">目前日期：{selectedDate}</p>
                </div>
             </div>
             <table className="w-full text-sm">
@@ -492,7 +578,7 @@ export default function App() {
                   <th className="p-8 text-center">A餐總量</th>
                   <th className="p-8 text-center">B餐總量</th>
                   <th className="p-8 text-center">C餐總量</th>
-                  <th className="p-8 text-center">例湯總數</th>
+                  <th className="p-8 text-center">例湯數</th>
                   <th className="p-8 text-right">當日總量</th>
                 </tr>
               </thead>
@@ -513,7 +599,9 @@ export default function App() {
           </div>
         )}
 
+        {/* 彈出視窗 */}
         {selectedCustomer && <CustomerCalendar customer={selectedCustomer} />}
+        {editingCustomer && <CustomerEditModal customer={editingCustomer} onClose={() => setEditingCustomer(null)} />}
       </main>
       
       <style>{`
