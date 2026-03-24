@@ -34,10 +34,11 @@ try {
 
 const TEXTURES = ['正', '碎', '免治', '分糊', '全糊'];
 const MEALS = ['A', 'B', 'C'];
-const CUST_TYPES = ['普通個人', 'CCSV 客戶', '團體單'];
+// 更新為 B2B / B2C
+const CUST_TYPES = ['B2C 普通個人', 'B2C CCSV 客戶', 'B2B 院舍', 'B2B 團體單'];
 
 // ==========================================
-// 📝 編輯與刪除客戶組件 (已移出主程式，修復跳動問題)
+// 📝 編輯與刪除客戶組件
 // ==========================================
 const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
   const [form, setForm] = useState(customer);
@@ -61,22 +62,46 @@ const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
           <button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300"><X size={20}/></button>
         </div>
         <div className="p-8 grid grid-cols-2 gap-6">
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">姓名</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">電話</label><input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          <div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">地址</label><input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
+          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">姓名</label><input value={form.name || ''} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
+          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">電話</label><input value={form.phone || ''} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
+          <div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">地址</label><input value={form.address || ''} onChange={e => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
           
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">線路</label>
-            <select value={form.zone} onChange={e => setForm({...form, zone: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none">
+            <select value={form.zone || ''} onChange={e => setForm({...form, zone: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none">
               <option value="">請選擇線路...</option>
               {(sysSettings?.zones || []).map(z => <option key={z}>{z}</option>)}
             </select>
           </div>
           
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">機構</label>
-            <input list="inst-options" value={form.institution} onChange={e => setForm({...form, institution: e.target.value})} placeholder="選擇或輸入機構..." className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
+            <input list="inst-options" value={form.institution || ''} onChange={e => setForm({...form, institution: e.target.value})} placeholder="選擇或輸入機構..." className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
             <datalist id="inst-options">
               {(sysSettings?.institutions || []).map(inst => <option key={inst} value={inst} />)}
             </datalist>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">客戶類型</label>
+            <select value={form.type || ''} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none">
+              <option value="">請選擇客戶類型...</option>
+              {CUST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-2 col-span-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">特別要求 (顯示於標籤)</label>
+            <input value={form.requirement || ''} onChange={e => setForm({...form, requirement: e.target.value})} placeholder="例如：需去除開封位、白肉優先..." className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
+          </div>
+
+          <div className="space-y-2 col-span-2 flex gap-6 p-4 bg-slate-50 rounded-2xl">
+            <label className="flex items-center gap-3 cursor-pointer font-bold">
+              <input type="checkbox" checked={form.needsUtensils || false} onChange={e => setForm({...form, needsUtensils: e.target.checked})} className="w-5 h-5 accent-orange-500" />
+              需要提供餐具 🍴
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer font-bold">
+              <input type="checkbox" checked={form.needsMenu || false} onChange={e => setForm({...form, needsMenu: e.target.checked})} className="w-5 h-5 accent-orange-500" />
+              附送當月菜單 📄
+            </label>
           </div>
         </div>
         <div className="p-8 border-t bg-slate-50 flex justify-between items-center">
@@ -92,7 +117,7 @@ const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
 };
 
 // ==========================================
-// 📅 月曆點餐組件 (已移出主程式，徹底修復打字跳Focus問題)
+// 📅 月曆點餐組件
 // ==========================================
 const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear, menus, onClose, db }) => {
   const [monthOrders, setMonthOrders] = useState([]);
@@ -111,7 +136,7 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
   const updateQty = async (dateStr, meal, texture, val) => {
     const qty = Math.max(0, parseInt(val) || 0);
     const orderId = `${dateStr}_${customer.id}`;
-    const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0 };
+    const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0, fruitQty: 0 };
     const newOrder = { ...existing, date: dateStr, customerId: customer.id, counts: { ...existing.counts, [`${meal}_${texture}`]: qty } };
     
     setMonthOrders(prev => [...prev.filter(o => o.date !== dateStr), newOrder]);
@@ -121,11 +146,21 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
   const updateSoup = async (dateStr, val) => {
     const qty = Math.max(0, parseInt(val) || 0);
     const orderId = `${dateStr}_${customer.id}`;
-    const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0 };
+    const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0, fruitQty: 0 };
     const newOrder = { ...existing, date: dateStr, customerId: customer.id, soupQty: qty };
     
     setMonthOrders(prev => [...prev.filter(o => o.date !== dateStr), newOrder]);
     await setDoc(doc(db, 'orders', orderId), { soupQty: qty }, { merge: true });
+  };
+
+  const updateFruit = async (dateStr, val) => {
+    const qty = Math.max(0, parseInt(val) || 0);
+    const orderId = `${dateStr}_${customer.id}`;
+    const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0, fruitQty: 0 };
+    const newOrder = { ...existing, date: dateStr, customerId: customer.id, fruitQty: qty };
+    
+    setMonthOrders(prev => [...prev.filter(o => o.date !== dateStr), newOrder]);
+    await setDoc(doc(db, 'orders', orderId), { fruitQty: qty }, { merge: true });
   };
 
   return (
@@ -149,17 +184,20 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
             {[...Array(daysInMonth)].map((_, i) => {
               const day = i + 1;
               const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-              const order = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0 };
+              const order = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0, fruitQty: 0 };
               const dayMenu = menus[dateStr] || { A: '', B: '', C: '', Soup: '' };
-              const total = Object.values(order.counts || {}).reduce((a, b) => a + b, 0) + (parseInt(order.soupQty) || 0);
+              const total = Object.values(order.counts || {}).reduce((a, b) => a + b, 0) + (parseInt(order.soupQty) || 0) + (parseInt(order.fruitQty) || 0);
 
               return (
                 <div key={day} className={`border-2 rounded-[1.5rem] p-4 flex flex-col gap-3 min-h-[320px] transition-all ${total > 0 ? 'bg-white border-orange-300 shadow-xl' : 'bg-slate-50/80 border-slate-200'}`}>
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
                     <span className="text-3xl font-black text-slate-700">{day}</span>
                     <div className="flex items-center gap-2 bg-emerald-50 px-2 py-1 rounded-xl border border-emerald-100">
                       <span className="text-xs font-black text-emerald-700">例湯</span>
                       <input type="number" min="0" value={order.soupQty || ''} onChange={(e) => updateSoup(dateStr, e.target.value)} placeholder="0" className="w-10 text-center font-black rounded-md outline-none bg-white py-1" />
+                      
+                      <span className="text-xs font-black text-rose-700 ml-1">生果</span>
+                      <input type="number" min="0" value={order.fruitQty || ''} onChange={(e) => updateFruit(dateStr, e.target.value)} placeholder="0" className="w-10 text-center font-black rounded-md outline-none bg-white py-1 border-rose-200" />
                     </div>
                   </div>
                   
@@ -280,7 +318,7 @@ export default function App() {
     return () => unsubMonthly();
   }, [user, selectedDate]);
 
-  // --- 導入邏輯 ---
+  // --- 導入邏輯 (加入餐具、菜單、生果、自動配對Type) ---
   const handleCustImport = async (e) => {
     const file = e.target.files[0];
     if (!file || !window.XLSX) return alert("請確保已載入 XLSX 庫");
@@ -290,15 +328,40 @@ export default function App() {
         const dataBuffer = new Uint8Array(evt.target.result);
         const wb = window.XLSX.read(dataBuffer, { type: 'array' });
         const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+        
         for (let row of data) {
           const keys = Object.keys(row);
           const findKey = (search) => keys.find(k => k.replace(/^\uFEFF/, '').trim().includes(search));
           const id = String(row[findKey('ID')] || row[findKey('id')] || "");
+          
           if (id && id.trim() !== "" && id !== "undefined") {
+            
+            // 處理客戶類型配對 (模糊匹配)
+            const rawType = String(row[findKey('類型')] || "");
+            let custType = CUST_TYPES[0]; // 預設 B2C 普通個人
+            if (rawType) {
+              const matched = CUST_TYPES.find(t => t.includes(rawType));
+              if (matched) custType = matched;
+            }
+
+            // 處理餐具和菜單 (支援 Y, y, 是, True, 1)
+            const rawUtensils = String(row[findKey('餐具')] || "").trim().toUpperCase();
+            const needsUtensils = ['Y', '是', 'TRUE', '1'].includes(rawUtensils);
+
+            const rawMenu = String(row[findKey('菜單')] || "").trim().toUpperCase();
+            const needsMenu = ['Y', '是', 'TRUE', '1'].includes(rawMenu);
+
             await setDoc(doc(db, 'customers', id), {
-              id, name: String(row[findKey('姓名')] || ""), address: String(row[findKey('地址')] || ""), 
-              phone: String(row[findKey('電話')] || ""), zone: String(row[findKey('線路')] || (sysSettings.zones && sysSettings.zones[0]) || ""), 
-              type: CUST_TYPES[0], institution: "", requirement: String(row[findKey('要求')] || row[findKey('備註')] || "")
+              id, 
+              name: String(row[findKey('姓名')] || ""), 
+              address: String(row[findKey('地址')] || ""), 
+              phone: String(row[findKey('電話')] || ""), 
+              zone: String(row[findKey('線路')] || (sysSettings.zones && sysSettings.zones[0]) || ""), 
+              type: custType, 
+              institution: String(row[findKey('機構')] || ""), 
+              requirement: String(row[findKey('要求')] || row[findKey('備註')] || ""),
+              needsUtensils: needsUtensils,
+              needsMenu: needsMenu
             });
           }
         }
@@ -332,7 +395,7 @@ export default function App() {
             const qty = parseInt(qtyMatch[1]) || 1;
             const meal = qtyMatch[2];
             await setDoc(doc(db, 'orders', `${dateStr}_${custId}`), {
-              date: dateStr, customerId: custId, counts: { [`${meal}_${texture}`]: qty }, soupQty: 0
+              date: dateStr, customerId: custId, counts: { [`${meal}_${texture}`]: qty }, soupQty: 0, fruitQty: 0
             }, { merge: true });
           }
         }
@@ -344,7 +407,7 @@ export default function App() {
 
   // --- 數據統計 (廚房總表/貼紙用) ---
   const dailySummary = useMemo(() => {
-    const summary = { A: { total: 0 }, B: { total: 0 }, C: { total: 0 }, Soup: 0 };
+    const summary = { A: { total: 0 }, B: { total: 0 }, C: { total: 0 }, Soup: 0, Fruit: 0 };
     TEXTURES.forEach(t => { summary.A[t] = 0; summary.B[t] = 0; summary.C[t] = 0; });
     
     orders.forEach(o => {
@@ -359,11 +422,12 @@ export default function App() {
         }
       });
       summary.Soup += (parseInt(o.soupQty) || 0);
+      summary.Fruit += (parseInt(o.fruitQty) || 0);
     });
     return summary;
   }, [orders]);
 
-  // 🌟 完美拆分：對數表數據計算 (加入 A餐, B餐, C餐, 糊餐, 免治餐, 例湯, 總數)
+  // --- 對數表數據計算 (含生果) ---
   const monthlyReconciliationData = useMemo(() => {
     const report = {};
     monthlyOrders.forEach(o => {
@@ -371,13 +435,11 @@ export default function App() {
       if (!cust) return;
       const groupKey = cust.institution || "獨立個人客戶";
       
-      // 初始化該機構
       if (!report[groupKey]) {
-        report[groupKey] = { name: groupKey, A: 0, B: 0, C: 0, paste: 0, minced: 0, Soup: 0, totalMeals: 0, groups: {} };
+        report[groupKey] = { name: groupKey, A: 0, B: 0, C: 0, paste: 0, minced: 0, Soup: 0, Fruit: 0, totalMeals: 0, groups: {} };
       }
-      // 初始化該團體單
       if (!report[groupKey].groups[cust.id]) {
-        report[groupKey].groups[cust.id] = { name: cust.name, type: cust.type, A: 0, B: 0, C: 0, paste: 0, minced: 0, Soup: 0, total: 0 };
+        report[groupKey].groups[cust.id] = { name: cust.name, type: cust.type, A: 0, B: 0, C: 0, paste: 0, minced: 0, Soup: 0, Fruit: 0, total: 0 };
       }
       
       let totalMealsForOrder = 0;
@@ -386,17 +448,14 @@ export default function App() {
         if (qty > 0) {
           const [mealType, texture] = k.split('_');
           
-          // 計算 A/B/C 餐總量
           if (['A', 'B', 'C'].includes(mealType)) {
             report[groupKey][mealType] += qty;
             report[groupKey].groups[cust.id][mealType] += qty;
           }
-          // 計算 糊餐 (分糊 / 全糊)
           if (['分糊', '全糊'].includes(texture)) {
             report[groupKey].paste += qty;
             report[groupKey].groups[cust.id].paste += qty;
           }
-          // 計算 免治餐
           if (texture === '免治') {
             report[groupKey].minced += qty;
             report[groupKey].groups[cust.id].minced += qty;
@@ -407,15 +466,17 @@ export default function App() {
       });
       
       const soupQty = parseInt(o.soupQty) || 0;
+      const fruitQty = parseInt(o.fruitQty) || 0;
 
-      // 累加總數
       report[groupKey].totalMeals += totalMealsForOrder;
       report[groupKey].Soup += soupQty;
+      report[groupKey].Fruit += fruitQty;
       
       report[groupKey].groups[cust.id].total += totalMealsForOrder;
       report[groupKey].groups[cust.id].Soup += soupQty;
+      report[groupKey].groups[cust.id].Fruit += fruitQty;
     });
-    return Object.values(report).sort((a,b) => b.totalMeals - a.totalMeals); // 按單量排序
+    return Object.values(report).sort((a,b) => b.totalMeals - a.totalMeals);
   }, [monthlyOrders, customers]);
 
   // --- 導出廚房總表 ---
@@ -428,6 +489,7 @@ export default function App() {
     reportData.push({ "規格": "總計", "A餐": dailySummary.A.total, "B餐": dailySummary.B.total, "C餐": dailySummary.C.total });
     reportData.push({ "規格": "", "A餐": "", "B餐": "", "C餐": "" });
     reportData.push({ "規格": "今日例湯總數量", "A餐": dailySummary.Soup, "B餐": "", "C餐": "" });
+    reportData.push({ "規格": "今日生果總數量", "A餐": dailySummary.Fruit, "B餐": "", "C餐": "" });
 
     const ws = window.XLSX.utils.json_to_sheet(reportData);
     const wb = window.XLSX.utils.book_new();
@@ -502,11 +564,20 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
               {customers.filter(c => c.name.includes(searchTerm) || c.institution.includes(searchTerm) || c.id.includes(searchTerm)).map(c => (
                 <div key={c.id} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group flex flex-col h-full">
-                  <div className="flex justify-between items-start mb-6"><span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${c.type === 'CCSV 客戶' ? 'bg-blue-50 text-blue-500' : c.type === '團體單' ? 'bg-orange-50 text-orange-500' : 'bg-slate-100 text-slate-400'}`}>{c.type}</span><button onClick={() => setSelectedCustomer(c)} className="p-3 bg-orange-50 text-orange-500 rounded-2xl group-hover:bg-orange-500 group-hover:text-white transition-all"><CalendarIcon size={20}/></button></div>
+                  <div className="flex justify-between items-start mb-6">
+                    <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${c.type?.includes('B2B') ? 'bg-orange-50 text-orange-500' : 'bg-blue-50 text-blue-500'}`}>{c.type || 'B2C 普通個人'}</span>
+                    <button onClick={() => setSelectedCustomer(c)} className="p-3 bg-orange-50 text-orange-500 rounded-2xl group-hover:bg-orange-500 group-hover:text-white transition-all"><CalendarIcon size={20}/></button>
+                  </div>
                   <h4 className="text-2xl font-black text-slate-800 leading-tight">{c.name}</h4>
                   <div className="mt-2 flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest"><Building2 size={12}/> {c.institution || "獨立個人"}</div>
                   <p className="text-xs text-slate-400 mt-6 leading-relaxed grow line-clamp-2"><MapPin size={12} className="inline mr-2"/>{c.address}</p>
-                  <div className="mt-8 flex gap-3 pt-6 border-t border-slate-50">
+                  
+                  <div className="mt-4 flex gap-2">
+                    {c.needsUtensils && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md">🍴 需餐具</span>}
+                    {c.needsMenu && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md">📄 附菜單</span>}
+                  </div>
+
+                  <div className="mt-6 flex gap-3 pt-6 border-t border-slate-50">
                     <button onClick={() => setSelectedCustomer(c)} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-orange-600 transition-all shadow-lg active:scale-95">全月點餐月曆</button>
                     <button onClick={() => setEditingCustomer(c)} className="p-4 border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all shadow-sm bg-white" title="修改或刪除客戶"><Edit2 size={18}/></button>
                   </div>
@@ -600,7 +671,7 @@ export default function App() {
                  <button onClick={() => window.print()} className="bg-orange-500 text-white px-10 py-5 rounded-2xl font-black shadow-lg active:scale-95">列印所有出餐貼紙</button>
                </div>
                
-               <div className="grid grid-cols-4 gap-6">
+               <div className="grid grid-cols-5 gap-6">
                  {MEALS.map(m => (
                    <div key={m} className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                      <div className="font-black text-xl text-slate-700 mb-4 pb-4 border-b border-slate-200">{m}餐 <span className="text-orange-500 ml-2">共 {dailySummary[m].total} 份</span></div>
@@ -615,6 +686,10 @@ export default function App() {
                    <div className="font-black text-xl text-emerald-800 mb-2">例湯總數</div>
                    <div className="text-6xl font-black text-emerald-500">{dailySummary.Soup}</div>
                  </div>
+                 <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col justify-center items-center text-center">
+                   <div className="font-black text-xl text-rose-800 mb-2">生果總數</div>
+                   <div className="text-6xl font-black text-rose-500">{dailySummary.Fruit}</div>
+                 </div>
                </div>
              </div>
              
@@ -624,12 +699,24 @@ export default function App() {
                   if(!c) return null;
                   const totalCounts = Object.values(o.counts || {}).reduce((a, b) => a + b, 0);
                   const soupCounts = parseInt(o.soupQty) || 0;
-                  if(totalCounts === 0 && soupCounts === 0) return null;
+                  const fruitCounts = parseInt(o.fruitQty) || 0;
+                  if(totalCounts === 0 && soupCounts === 0 && fruitCounts === 0) return null;
 
                   return (
                     <div key={o.customerId} className="bg-white border-2 border-black p-6 h-[320px] relative flex flex-col font-bold break-inside-avoid">
-                       <div className="text-center border-b-2 border-black pb-2 mb-2"><div className="text-3xl font-black tracking-tighter uppercase">{c.name}</div><div className="text-[10px] uppercase">{c.zone}</div></div>
-                       <div className="text-xs mb-4 h-10 overflow-hidden">{c.address}</div>
+                       <div className="text-center border-b-2 border-black pb-2 mb-2 relative">
+                         <div className="absolute top-0 left-0 text-[10px] bg-black text-white px-2 py-1 rounded-br-lg">{c.type?.includes('B2B') ? 'B2B' : 'B2C'}</div>
+                         <div className="text-3xl font-black tracking-tighter uppercase mt-4">{c.name}</div>
+                         <div className="text-[10px] uppercase">{c.zone}</div>
+                       </div>
+                       
+                       <div className="text-xs mb-2 h-8 overflow-hidden">{c.address}</div>
+                       
+                       <div className="flex gap-2 mb-2">
+                         {c.needsUtensils && <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 border border-orange-300 rounded-md">🍴 需餐具</span>}
+                         {c.needsMenu && <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-1 border border-blue-300 rounded-md">📄 附菜單</span>}
+                       </div>
+
                        <div className="flex-1 space-y-1">
                           {Object.keys(o.counts || {}).map(k => o.counts[k] > 0 && (
                             <div key={k} className="flex justify-between border-b border-black/10 py-1">
@@ -638,13 +725,24 @@ export default function App() {
                             </div>
                           ))}
                           {soupCounts > 0 && (
-                             <div className="flex justify-between py-1 border-b border-black/10 text-emerald-700">
-                               <span>今日例湯: {(menus[selectedDate] || {}).Soup}</span>
-                               <span className="font-black text-lg">x {soupCounts}</span>
-                             </div>
+                              <div className="flex justify-between py-1 border-b border-black/10 text-emerald-700">
+                                <span>🍲 今日例湯</span>
+                                <span className="font-black text-lg">x {soupCounts}</span>
+                              </div>
+                          )}
+                          {fruitCounts > 0 && (
+                              <div className="flex justify-between py-1 border-b border-black/10 text-rose-700">
+                                <span>🍎 是日生果</span>
+                                <span className="font-black text-lg">x {fruitCounts}</span>
+                              </div>
                           )}
                        </div>
-                       <div className="text-[10px] text-red-600 italic mt-2">{c.requirement || "無備註"}</div>
+                       
+                       {c.requirement && (
+                         <div className="text-sm text-white bg-red-600 font-black p-2 mt-2 text-center border-2 border-black">
+                           ⚠️ {c.requirement}
+                         </div>
+                       )}
                     </div>
                   );
                 })}
@@ -652,7 +750,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 🌟 最終版對數明細表 (展示 A餐, B餐, C餐, 糊餐, 免治餐, 例湯, 總餐數) */}
         {activeTab === 'recon' && (
           <div className="bg-white rounded-[3rem] shadow-sm border overflow-hidden animate-in fade-in duration-500">
             <div className="p-10 border-b flex justify-between items-center bg-slate-50/50">
@@ -668,13 +765,13 @@ export default function App() {
                   <th className="p-4 text-center">糊餐</th>
                   <th className="p-4 text-center">免治餐</th>
                   <th className="p-4 text-center">例湯</th>
+                  <th className="p-4 text-center">生果</th>
                   <th className="p-4 text-center">總餐數</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-bold">
                 {monthlyReconciliationData.map(r => (
                   <React.Fragment key={r.name}>
-                    {/* 機構總數 Header */}
                     <tr className="bg-orange-50/50 hover:bg-orange-50 transition-colors">
                       <td className="p-5 pl-8 text-lg font-black text-slate-800">🏢 {r.name}</td>
                       <td className="p-5 text-center text-lg font-black text-orange-600">{r.A}</td>
@@ -683,9 +780,9 @@ export default function App() {
                       <td className="p-5 text-center text-lg font-black text-purple-600">{r.paste}</td>
                       <td className="p-5 text-center text-lg font-black text-rose-600">{r.minced}</td>
                       <td className="p-5 text-center text-lg font-black text-slate-500">{r.Soup}</td>
+                      <td className="p-5 text-center text-lg font-black text-rose-500">{r.Fruit}</td>
                       <td className="p-5 text-center text-xl font-black text-slate-900">{r.totalMeals}</td>
                     </tr>
-                    {/* 該機構旗下團體單明細 */}
                     {Object.values(r.groups).map(g => (
                       <tr key={g.name} className="hover:bg-slate-50 transition-colors text-slate-600">
                         <td className="p-4 pl-14 border-l-4 border-orange-200">↳ {g.name} <span className="ml-2 px-2 py-0.5 bg-slate-100 text-[9px] rounded-full">{g.type}</span></td>
@@ -695,13 +792,14 @@ export default function App() {
                         <td className="p-4 text-center text-purple-400">{g.paste}</td>
                         <td className="p-4 text-center text-rose-400">{g.minced}</td>
                         <td className="p-4 text-center text-slate-400">{g.Soup}</td>
+                        <td className="p-4 text-center text-rose-400">{g.Fruit}</td>
                         <td className="p-4 text-center font-black text-slate-800">{g.total}</td>
                       </tr>
                     ))}
                   </React.Fragment>
                 ))}
                 {monthlyReconciliationData.length === 0 && (
-                  <tr><td colSpan="8" className="p-10 text-center text-slate-400">此月份暫無訂單數據</td></tr>
+                  <tr><td colSpan="9" className="p-10 text-center text-slate-400">此月份暫無訂單數據</td></tr>
                 )}
               </tbody>
             </table>
