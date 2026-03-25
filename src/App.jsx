@@ -34,18 +34,22 @@ try {
 
 const TEXTURES = ['正', '碎', '免治', '分糊', '全糊'];
 const MEALS = ['A', 'B', 'C'];
-// 更新為 B2B / B2C
 const CUST_TYPES = ['B2C 普通個人', 'B2C CCSV 客戶', 'B2B 院舍', 'B2B 團體單'];
 
 // ==========================================
-// 📝 編輯與刪除客戶組件
+// 📝 編輯與刪除客戶組件 (已全面轉用 Dropdown)
 // ==========================================
 const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
   const [form, setForm] = useState(customer);
+  
   const handleSave = async () => {
-    try { await setDoc(doc(db, 'customers', customer.id), form, { merge: true }); alert("資料已更新！"); onClose(); }
-    catch (err) { alert("更新失敗：" + err.message); }
+    try { 
+      await setDoc(doc(db, 'customers', customer.id), form, { merge: true }); 
+      alert("資料已更新！"); 
+      onClose(); 
+    } catch (err) { alert("更新失敗：" + err.message); }
   };
+  
   const handleDelete = async () => {
     if (window.confirm(`⚠️ 警告：確定要永久刪除客戶「${customer.name}」嗎？`)) {
       await deleteDoc(doc(db, 'customers', customer.id));
@@ -67,39 +71,40 @@ const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
           <div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">地址</label><input value={form.address || ''} onChange={e => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
           
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">線路</label>
-            <select value={form.zone || ''} onChange={e => setForm({...form, zone: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none">
+            <select value={form.zone || ''} onChange={e => setForm({...form, zone: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
               <option value="">請選擇線路...</option>
-              {(sysSettings?.zones || []).map(z => <option key={z}>{z}</option>)}
+              {(sysSettings?.zones || []).map(z => <option key={z} value={z}>{z}</option>)}
             </select>
           </div>
           
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">機構</label>
-            <input list="inst-options" value={form.institution || ''} onChange={e => setForm({...form, institution: e.target.value})} placeholder="選擇或輸入機構..." className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
-            <datalist id="inst-options">
-              {(sysSettings?.institutions || []).map(inst => <option key={inst} value={inst} />)}
-            </datalist>
+            <select value={form.institution || ''} onChange={e => setForm({...form, institution: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
+              <option value="">獨立個人 (無機構)</option>
+              {form.institution && !(sysSettings?.institutions || []).includes(form.institution) && (
+                <option value={form.institution}>{form.institution} (未加入設定名單)</option>
+              )}
+              {(sysSettings?.institutions || []).map(inst => <option key={inst} value={inst}>{inst}</option>)}
+            </select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">客戶類型</label>
-            <select value={form.type || ''} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none">
+          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">客戶類型</label>
+            <select value={form.type || ''} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
               <option value="">請選擇客戶類型...</option>
               {CUST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
 
-          <div className="space-y-2 col-span-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">特別要求 (顯示於標籤)</label>
+          <div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">特別要求 (顯示於標籤)</label>
             <input value={form.requirement || ''} onChange={e => setForm({...form, requirement: e.target.value})} placeholder="例如：需去除開封位、白肉優先..." className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
           </div>
 
           <div className="space-y-2 col-span-2 flex gap-6 p-4 bg-slate-50 rounded-2xl">
             <label className="flex items-center gap-3 cursor-pointer font-bold">
-              <input type="checkbox" checked={form.needsUtensils || false} onChange={e => setForm({...form, needsUtensils: e.target.checked})} className="w-5 h-5 accent-orange-500" />
+              <input type="checkbox" checked={form.needsUtensils || false} onChange={e => setForm({...form, needsUtensils: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />
               需要提供餐具 🍴
             </label>
             <label className="flex items-center gap-3 cursor-pointer font-bold">
-              <input type="checkbox" checked={form.needsMenu || false} onChange={e => setForm({...form, needsMenu: e.target.checked})} className="w-5 h-5 accent-orange-500" />
+              <input type="checkbox" checked={form.needsMenu || false} onChange={e => setForm({...form, needsMenu: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />
               附送當月菜單 📄
             </label>
           </div>
@@ -117,7 +122,7 @@ const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
 };
 
 // ==========================================
-// 📅 月曆點餐組件
+// 📅 月曆點餐組件 (加入生果)
 // ==========================================
 const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear, menus, onClose, db }) => {
   const [monthOrders, setMonthOrders] = useState([]);
@@ -138,7 +143,6 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
     const orderId = `${dateStr}_${customer.id}`;
     const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0, fruitQty: 0 };
     const newOrder = { ...existing, date: dateStr, customerId: customer.id, counts: { ...existing.counts, [`${meal}_${texture}`]: qty } };
-    
     setMonthOrders(prev => [...prev.filter(o => o.date !== dateStr), newOrder]);
     await setDoc(doc(db, 'orders', orderId), newOrder, { merge: true });
   };
@@ -148,7 +152,6 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
     const orderId = `${dateStr}_${customer.id}`;
     const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0, fruitQty: 0 };
     const newOrder = { ...existing, date: dateStr, customerId: customer.id, soupQty: qty };
-    
     setMonthOrders(prev => [...prev.filter(o => o.date !== dateStr), newOrder]);
     await setDoc(doc(db, 'orders', orderId), { soupQty: qty }, { merge: true });
   };
@@ -158,7 +161,6 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
     const orderId = `${dateStr}_${customer.id}`;
     const existing = monthOrders.find(o => o.date === dateStr) || { counts: {}, soupQty: 0, fruitQty: 0 };
     const newOrder = { ...existing, date: dateStr, customerId: customer.id, fruitQty: qty };
-    
     setMonthOrders(prev => [...prev.filter(o => o.date !== dateStr), newOrder]);
     await setDoc(doc(db, 'orders', orderId), { fruitQty: qty }, { merge: true });
   };
@@ -195,12 +197,10 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
                     <div className="flex items-center gap-2 bg-emerald-50 px-2 py-1 rounded-xl border border-emerald-100">
                       <span className="text-xs font-black text-emerald-700">例湯</span>
                       <input type="number" min="0" value={order.soupQty || ''} onChange={(e) => updateSoup(dateStr, e.target.value)} placeholder="0" className="w-10 text-center font-black rounded-md outline-none bg-white py-1" />
-                      
                       <span className="text-xs font-black text-rose-700 ml-1">生果</span>
                       <input type="number" min="0" value={order.fruitQty || ''} onChange={(e) => updateFruit(dateStr, e.target.value)} placeholder="0" className="w-10 text-center font-black rounded-md outline-none bg-white py-1 border-rose-200" />
                     </div>
                   </div>
-                  
                   <div className="space-y-3 flex-1">
                     {MEALS.map(m => (
                       <div key={m} className="bg-slate-50 p-2 rounded-xl border border-slate-100">
@@ -269,11 +269,8 @@ export default function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
-    try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-    } catch (error) {
-      setLoginError("登入失敗：請檢查電郵地址或密碼是否正確。");
-    }
+    try { await signInWithEmailAndPassword(auth, loginEmail, loginPassword); } 
+    catch (error) { setLoginError("登入失敗：請檢查電郵地址或密碼是否正確。"); }
   };
 
   const handleLogout = async () => {
@@ -296,9 +293,7 @@ export default function App() {
       setOrders(snap.docs.map(d => d.data()));
     });
     const unsubSettings = onSnapshot(doc(db, 'settings', 'options'), (docSnap) => {
-      if (docSnap.exists()) {
-        setSysSettings(prev => ({ ...prev, ...docSnap.data() }));
-      }
+      if (docSnap.exists()) { setSysSettings(prev => ({ ...prev, ...docSnap.data() })); }
     });
 
     return () => { unsubCust(); unsubMenu(); unsubOrders(); unsubSettings(); };
@@ -318,7 +313,7 @@ export default function App() {
     return () => unsubMonthly();
   }, [user, selectedDate]);
 
-  // --- 導入邏輯 (加入餐具、菜單、生果、自動配對Type) ---
+  // --- 導入邏輯 ---
   const handleCustImport = async (e) => {
     const file = e.target.files[0];
     if (!file || !window.XLSX) return alert("請確保已載入 XLSX 庫");
@@ -335,16 +330,13 @@ export default function App() {
           const id = String(row[findKey('ID')] || row[findKey('id')] || "");
           
           if (id && id.trim() !== "" && id !== "undefined") {
-            
-            // 處理客戶類型配對 (模糊匹配)
             const rawType = String(row[findKey('類型')] || "");
-            let custType = CUST_TYPES[0]; // 預設 B2C 普通個人
+            let custType = CUST_TYPES[0]; 
             if (rawType) {
               const matched = CUST_TYPES.find(t => t.includes(rawType));
               if (matched) custType = matched;
             }
 
-            // 處理餐具和菜單 (支援 Y, y, 是, True, 1)
             const rawUtensils = String(row[findKey('餐具')] || "").trim().toUpperCase();
             const needsUtensils = ['Y', '是', 'TRUE', '1'].includes(rawUtensils);
 
@@ -360,8 +352,7 @@ export default function App() {
               type: custType, 
               institution: String(row[findKey('機構')] || ""), 
               requirement: String(row[findKey('要求')] || row[findKey('備註')] || ""),
-              needsUtensils: needsUtensils,
-              needsMenu: needsMenu
+              needsUtensils, needsMenu
             });
           }
         }
@@ -405,7 +396,7 @@ export default function App() {
     reader.readAsArrayBuffer(file);
   };
 
-  // --- 數據統計 (廚房總表/貼紙用) ---
+  // --- 數據統計 ---
   const dailySummary = useMemo(() => {
     const summary = { A: { total: 0 }, B: { total: 0 }, C: { total: 0 }, Soup: 0, Fruit: 0 };
     TEXTURES.forEach(t => { summary.A[t] = 0; summary.B[t] = 0; summary.C[t] = 0; });
@@ -427,7 +418,7 @@ export default function App() {
     return summary;
   }, [orders]);
 
-  // --- 對數表數據計算 (含生果) ---
+  // --- 對數表數據計算 ---
   const monthlyReconciliationData = useMemo(() => {
     const report = {};
     monthlyOrders.forEach(o => {
@@ -447,7 +438,6 @@ export default function App() {
         const qty = parseInt(o.counts[k]) || 0;
         if (qty > 0) {
           const [mealType, texture] = k.split('_');
-          
           if (['A', 'B', 'C'].includes(mealType)) {
             report[groupKey][mealType] += qty;
             report[groupKey].groups[cust.id][mealType] += qty;
@@ -460,7 +450,6 @@ export default function App() {
             report[groupKey].minced += qty;
             report[groupKey].groups[cust.id].minced += qty;
           }
-          
           totalMealsForOrder += qty;
         }
       });
@@ -483,9 +472,7 @@ export default function App() {
   const exportKitchenExcel = () => {
     if (!window.XLSX) return alert("請確保已載入 XLSX 庫");
     const reportData = [];
-    TEXTURES.forEach(t => {
-      reportData.push({ "規格": t, "A餐": dailySummary.A[t], "B餐": dailySummary.B[t], "C餐": dailySummary.C[t] });
-    });
+    TEXTURES.forEach(t => { reportData.push({ "規格": t, "A餐": dailySummary.A[t], "B餐": dailySummary.B[t], "C餐": dailySummary.C[t] }); });
     reportData.push({ "規格": "總計", "A餐": dailySummary.A.total, "B餐": dailySummary.B.total, "C餐": dailySummary.C.total });
     reportData.push({ "規格": "", "A餐": "", "B餐": "", "C餐": "" });
     reportData.push({ "規格": "今日例湯總數量", "A餐": dailySummary.Soup, "B餐": "", "C餐": "" });
@@ -496,6 +483,50 @@ export default function App() {
     window.XLSX.utils.book_append_sheet(wb, ws, "廚房總表");
     window.XLSX.writeFile(wb, `WeCare_廚房總表_${selectedDate}.xlsx`);
   };
+
+  // --- 生成列印標籤陣列 (處理拆單及路線統計) ---
+  const stickersToPrint = useMemo(() => {
+    const result = [];
+    const zoneCounts = {};
+
+    orders.forEach(o => {
+      const c = customers.find(cust => cust.id === o.customerId);
+      if (!c) return;
+      const totalCounts = Object.values(o.counts || {}).reduce((a, b) => a + b, 0);
+      const soupCounts = parseInt(o.soupQty) || 0;
+      const fruitCounts = parseInt(o.fruitQty) || 0;
+
+      if (totalCounts === 0 && soupCounts === 0 && fruitCounts === 0) return;
+
+      zoneCounts[c.zone] = (zoneCounts[c.zone] || 0) + 1;
+
+      if (c.type?.includes('B2B')) {
+        Object.keys(o.counts || {}).forEach(k => {
+          if (o.counts[k] > 0) {
+            const [meal, tex] = k.split('_');
+            result.push({
+              type: 'B2B', customer: c,
+              tag: c.type.includes('團體') ? '團 體 單' : '院 舍 單',
+              mealName: `(${meal}) ${(menus[selectedDate] || {})[meal]}`,
+              texture: tex, qty: o.counts[k]
+            });
+          }
+        });
+        if (soupCounts > 0) result.push({ type: 'B2B', customer: c, tag: '團 體 單', mealName: '🍲 今日例湯', texture: '例湯', qty: soupCounts });
+        if (fruitCounts > 0) result.push({ type: 'B2B', customer: c, tag: '團 體 單', mealName: '🍎 是日生果', texture: '生果', qty: fruitCounts });
+      } else {
+        let primaryTex = '';
+        for (const k of Object.keys(o.counts || {})) {
+          if (o.counts[k] > 0) { primaryTex = k.split('_')[1]; break; }
+        }
+        result.push({ type: 'B2C', customer: c, order: o, primaryTex: primaryTex || (soupCounts ? '湯' : '果') });
+      }
+    });
+
+    const routeStickers = Object.keys(zoneCounts).sort().map(zone => ({ type: 'ROUTE', zone: zone, count: zoneCounts[zone] }));
+    return [...routeStickers, ...result.filter(s => s.type === 'B2B'), ...result.filter(s => s.type === 'B2C')];
+  }, [orders, customers, menus, selectedDate]);
+
 
   // ==========================================
   // 🔒 登入介面
@@ -508,9 +539,7 @@ export default function App() {
         <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md p-12 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-3 bg-orange-500"></div>
           <div className="flex flex-col items-center mb-10">
-            <div className="w-24 h-24 bg-slate-50 rounded-3xl p-2 mb-6 flex items-center justify-center shadow-inner">
-              <img src="/logo.png" alt="WeCare" className="w-full h-full object-contain" />
-            </div>
+            <div className="w-24 h-24 bg-slate-50 rounded-3xl p-2 mb-6 flex items-center justify-center shadow-inner"><img src="/logo.png" alt="WeCare" className="w-full h-full object-contain" /></div>
             <h1 className="text-4xl font-black italic text-slate-900 tracking-tighter">WECARE</h1>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
@@ -573,8 +602,8 @@ export default function App() {
                   <p className="text-xs text-slate-400 mt-6 leading-relaxed grow line-clamp-2"><MapPin size={12} className="inline mr-2"/>{c.address}</p>
                   
                   <div className="mt-4 flex gap-2">
-                    {c.needsUtensils && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md">🍴 需餐具</span>}
-                    {c.needsMenu && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md">📄 附菜單</span>}
+                    {c.needsUtensils && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-bold">🍴 需餐具</span>}
+                    {c.needsMenu && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-bold">📄 附菜單</span>}
                   </div>
 
                   <div className="mt-6 flex gap-3 pt-6 border-t border-slate-50">
@@ -693,56 +722,88 @@ export default function App() {
                </div>
              </div>
              
-             <div className="grid grid-cols-2 gap-4">
-                {orders.map(o => {
-                  const c = customers.find(cust => cust.id === o.customerId);
-                  if(!c) return null;
-                  const totalCounts = Object.values(o.counts || {}).reduce((a, b) => a + b, 0);
+             {/* 全新熱敏列印排版區塊 */}
+             <div className="grid grid-cols-2 gap-6 pb-20">
+                {stickersToPrint.map((sticker, idx) => {
+                  
+                  // ==============================
+                  // 格式三：路線統計標籤
+                  // ==============================
+                  if (sticker.type === 'ROUTE') {
+                    return (
+                      <div key={`route-${idx}`} className="bg-white border-4 border-black p-8 h-[380px] flex flex-col justify-center items-center font-bold break-inside-avoid shadow-sm rounded-3xl">
+                        <div className="text-6xl font-black text-center leading-snug tracking-widest mb-6">
+                          {sticker.zone}<br/>(共 {sticker.count} 單)
+                        </div>
+                        <div className="w-full border-t-8 border-black pt-6 mt-4">
+                          <div className="text-5xl font-black text-center tracking-widest">*用保溫箱</div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const c = sticker.customer;
+
+                  // ==============================
+                  // 格式二：B2B 院舍 / 團體單
+                  // ==============================
+                  if (sticker.type === 'B2B') {
+                    const reqStr = `${c.needsUtensils ? '要餐具' : '走餐具'} | ${c.requirement || '保溫箱'}`;
+                    return (
+                      <div key={`b2b-${c.id}-${idx}`} className="bg-white border-4 border-black p-6 h-[380px] flex flex-col font-bold break-inside-avoid shadow-sm rounded-3xl">
+                        <div className="text-5xl font-black text-center tracking-widest mb-3">{sticker.tag}</div>
+                        <div className="bg-black text-white text-[32px] font-black text-center py-3 px-2 leading-tight w-full" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                          {c.institution}
+                        </div>
+                        <div className="text-xl text-center font-black my-4 px-2">{c.address}</div>
+                        <div className="w-full border-b-4 border-black mb-4"></div>
+                        
+                        <div className="flex-1 flex flex-col justify-center items-center">
+                          <div className="text-4xl text-center font-black mb-3">{sticker.mealName}</div>
+                          <div className="text-6xl text-center font-black tracking-widest">{sticker.texture}{sticker.texture.includes('湯') || sticker.texture.includes('果') ? '' : '餐'} x {sticker.qty}</div>
+                        </div>
+                        
+                        <div className="w-full border-t-4 border-black pt-4 mt-2">
+                          <div className="text-2xl text-center font-black tracking-wider">{reqStr}</div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // ==============================
+                  // 格式一：B2C CCSV / 個人客
+                  // ==============================
+                  const o = sticker.order;
                   const soupCounts = parseInt(o.soupQty) || 0;
                   const fruitCounts = parseInt(o.fruitQty) || 0;
-                  if(totalCounts === 0 && soupCounts === 0 && fruitCounts === 0) return null;
 
                   return (
-                    <div key={o.customerId} className="bg-white border-2 border-black p-6 h-[320px] relative flex flex-col font-bold break-inside-avoid">
-                       <div className="text-center border-b-2 border-black pb-2 mb-2 relative">
-                         <div className="absolute top-0 left-0 text-[10px] bg-black text-white px-2 py-1 rounded-br-lg">{c.type?.includes('B2B') ? 'B2B' : 'B2C'}</div>
-                         <div className="text-3xl font-black tracking-tighter uppercase mt-4">{c.name}</div>
-                         <div className="text-[10px] uppercase">{c.zone}</div>
-                       </div>
+                    <div key={`b2c-${c.id}`} className="bg-white border-4 border-black p-8 h-[380px] flex flex-col font-bold break-inside-avoid shadow-sm rounded-3xl relative">
+                       <div className="text-[52px] font-black text-center tracking-widest mb-2 leading-none">{c.name}</div>
+                       <div className="w-full border-b-8 border-black mb-4"></div>
+                       <div className="text-2xl text-center font-black mb-6 h-16 overflow-hidden">{c.address}</div>
                        
-                       <div className="text-xs mb-2 h-8 overflow-hidden">{c.address}</div>
-                       
-                       <div className="flex gap-2 mb-2">
-                         {c.needsUtensils && <span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 border border-orange-300 rounded-md">🍴 需餐具</span>}
-                         {c.needsMenu && <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-1 border border-blue-300 rounded-md">📄 附菜單</span>}
-                       </div>
-
-                       <div className="flex-1 space-y-1">
+                       <div className="flex-1 text-[26px] font-black space-y-3">
                           {Object.keys(o.counts || {}).map(k => o.counts[k] > 0 && (
-                            <div key={k} className="flex justify-between border-b border-black/10 py-1">
-                              <span>({k.split('_')[0]}餐-{k.split('_')[1]}) {(menus[selectedDate] || {})[k.split('_')[0]]}</span>
-                              <span className="font-black text-lg">x {o.counts[k]}</span>
+                            <div key={k} className="flex gap-4">
+                              <span>({k.split('_')[0]}餐) {(menus[selectedDate] || {})[k.split('_')[0]]}:</span>
+                              <span>{o.counts[k]}</span>
                             </div>
                           ))}
-                          {soupCounts > 0 && (
-                              <div className="flex justify-between py-1 border-b border-black/10 text-emerald-700">
-                                <span>🍲 今日例湯</span>
-                                <span className="font-black text-lg">x {soupCounts}</span>
-                              </div>
-                          )}
-                          {fruitCounts > 0 && (
-                              <div className="flex justify-between py-1 border-b border-black/10 text-rose-700">
-                                <span>🍎 是日生果</span>
-                                <span className="font-black text-lg">x {fruitCounts}</span>
-                              </div>
-                          )}
+                          {soupCounts > 0 && <div className="flex gap-4"><span>🍲 今日例湯:</span><span>{soupCounts}</span></div>}
+                          {fruitCounts > 0 && <div className="flex gap-4"><span>🍎 是日生果:</span><span>{fruitCounts}</span></div>}
                        </div>
                        
-                       {c.requirement && (
-                         <div className="text-sm text-white bg-red-600 font-black p-2 mt-2 text-center border-2 border-black">
-                           ⚠️ {c.requirement}
+                       <div className="flex justify-between items-end mt-4">
+                         <div className="text-[28px] font-black tracking-widest space-y-2 max-w-[70%] leading-snug">
+                           <div>{c.needsUtensils ? '*要餐具' : '*不要餐具'}</div>
+                           {c.needsMenu && <div>*附菜單</div>}
+                           {c.requirement && <div className="text-2xl">*{c.requirement}</div>}
                          </div>
-                       )}
+                         <div className="w-[85px] h-[85px] rounded-full border-8 border-black flex items-center justify-center text-[40px] font-black absolute bottom-6 right-8">
+                           {sticker.primaryTex}
+                         </div>
+                       </div>
                     </div>
                   );
                 })}
@@ -835,8 +896,10 @@ export default function App() {
         @media print {
           .no-print { display: none !important; }
           main { margin-left: 0 !important; padding: 0 !important; background: white; }
-          .grid { display: grid !important; grid-template-cols: 1fr 1fr !important; gap: 10px !important; }
+          .grid { display: grid !important; grid-template-cols: 1fr 1fr !important; gap: 15px !important; }
           .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
+          /* 確保黑底白字能正常列印 */
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
     </div>
