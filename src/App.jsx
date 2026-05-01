@@ -10,9 +10,6 @@ import {
 } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
-// ==========================================
-// 🚀 正式生產環境 Firebase 設定
-// ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyBs-iuaxif5Ruol0o95bvPHG7sAeBPIZCI",
   authDomain: "wecare-db-257a2.firebaseapp.com",
@@ -36,9 +33,6 @@ const TEXTURES = ['正', '碎', '免治', '分糊', '全糊'];
 const MEALS = ['A', 'B', 'C'];
 const CUST_TYPES = ['B2C 普通個人', 'B2C CCSV 客戶', 'B2B 院舍', 'B2B 團體單'];
 
-// ==========================================
-// 📝 文章 (Blog) 編輯組件
-// ==========================================
 const BlogEditModal = ({ blog, onClose, db }) => {
   const [form, setForm] = useState(blog || { title: '', category: '節氣養生', date: new Date().toISOString().split('T')[0], summary: '', content: '' });
   
@@ -68,11 +62,11 @@ const BlogEditModal = ({ blog, onClose, db }) => {
         </div>
         <div className="p-8 space-y-6">
           <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">標題</label><input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="例如：立秋後必飲湯水"/></div>
-            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">分類</label><input value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="例如：節氣養生"/></div>
+            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">標題</label><input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
+            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">分類</label><input value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
           </div>
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">簡介 (顯示於前台列表，吸引客人點擊)</label><input value={form.summary} onChange={e => setForm({...form, summary: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">詳細內容 (支援換行)</label><textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold min-h-[200px] resize-none" placeholder="輸入文章詳細內容..."></textarea></div>
+          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">詳細內容 (支援換行)</label><textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold min-h-[200px] resize-none"></textarea></div>
         </div>
         <div className="p-8 border-t bg-slate-50 flex justify-between items-center">
           {form.id ? <button onClick={handleDelete} className="text-red-500 font-black hover:bg-red-100 px-4 py-2 rounded-xl flex items-center gap-2"><Trash2 size={18}/> 刪除文章</button> : <div></div>}
@@ -86,25 +80,20 @@ const BlogEditModal = ({ blog, onClose, db }) => {
   );
 };
 
-// ==========================================
-// 📝 編輯與刪除客戶組件 
-// ==========================================
 const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
   const [form, setForm] = useState(customer);
   
   const handleSave = async () => {
     try { 
       await setDoc(doc(db, 'customers', customer.id), form, { merge: true }); 
-      alert("資料已更新！"); 
-      onClose(); 
+      alert("資料已更新！"); onClose(); 
     } catch (err) { alert("更新失敗：" + err.message); }
   };
   
   const handleDelete = async () => {
     if (window.confirm(`⚠️ 警告：確定要永久刪除客戶「${customer.name}」嗎？`)) {
       await deleteDoc(doc(db, 'customers', customer.id));
-      alert("客戶資料已徹底刪除。");
-      onClose();
+      alert("客戶資料已徹底刪除。"); onClose();
     }
   };
 
@@ -119,61 +108,42 @@ const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">姓名</label><input value={form.name || ''} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">電話</label><input value={form.phone || ''} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
           <div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">地址</label><input value={form.address || ''} onChange={e => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">線路</label>
             <select value={form.zone || ''} onChange={e => setForm({...form, zone: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
               <option value="">請選擇線路...</option>
               {(sysSettings?.zones || []).map(z => <option key={z} value={z}>{z}</option>)}
             </select>
           </div>
-          
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">機構</label>
             <select value={form.institution || ''} onChange={e => setForm({...form, institution: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
               <option value="">獨立個人 (無機構)</option>
-              {form.institution && !(sysSettings?.institutions || []).includes(form.institution) && (
-                <option value={form.institution}>{form.institution} (未加入設定名單)</option>
-              )}
+              {form.institution && !(sysSettings?.institutions || []).includes(form.institution) && (<option value={form.institution}>{form.institution} (未加入設定名單)</option>)}
               {(sysSettings?.institutions || []).map(inst => <option key={inst} value={inst}>{inst}</option>)}
             </select>
           </div>
-
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">客戶類型</label>
             <select value={form.type || ''} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
               <option value="">請選擇客戶類型...</option>
               {CUST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-
           <div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">特別要求 (顯示於標籤)</label>
-            <input value={form.requirement || ''} onChange={e => setForm({...form, requirement: e.target.value})} placeholder="例如：需去除開封位、白肉優先..." className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
+            <input value={form.requirement || ''} onChange={e => setForm({...form, requirement: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" />
           </div>
-
           <div className="space-y-2 col-span-2 flex gap-6 p-4 bg-slate-50 rounded-2xl">
-            <label className="flex items-center gap-3 cursor-pointer font-bold">
-              <input type="checkbox" checked={form.needsUtensils || false} onChange={e => setForm({...form, needsUtensils: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />
-              需要提供餐具 🍴
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer font-bold">
-              <input type="checkbox" checked={form.needsMenu || false} onChange={e => setForm({...form, needsMenu: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />
-              附送當月菜單 📄
-            </label>
+            <label className="flex items-center gap-3 cursor-pointer font-bold"><input type="checkbox" checked={form.needsUtensils || false} onChange={e => setForm({...form, needsUtensils: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />需要提供餐具 🍴</label>
+            <label className="flex items-center gap-3 cursor-pointer font-bold"><input type="checkbox" checked={form.needsMenu || false} onChange={e => setForm({...form, needsMenu: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />附送當月菜單 📄</label>
           </div>
         </div>
         <div className="p-8 border-t bg-slate-50 flex justify-between items-center">
           <button onClick={handleDelete} className="text-red-500 font-black hover:bg-red-100 p-4 rounded-2xl flex gap-2"><Trash2 size={18}/> 刪除客戶</button>
-          <div className="flex gap-3">
-            <button onClick={onClose} className="font-black text-slate-400 px-6">取消</button>
-            <button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl shadow-lg flex gap-2"><Check size={18}/> 儲存</button>
-          </div>
+          <div className="flex gap-3"><button onClick={onClose} className="font-black text-slate-400 px-6">取消</button><button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl shadow-lg flex gap-2"><Check size={18}/> 儲存</button></div>
         </div>
       </div>
     </div>
   );
 };
 
-// ==========================================
-// 📅 月曆點餐組件
-// ==========================================
 const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear, menus, onClose, db }) => {
   const [monthOrders, setMonthOrders] = useState([]);
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -240,10 +210,17 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
               const dayMenu = menus[dateStr] || { A: '', B: '', C: '', Soup: '' };
               const total = Object.values(order.counts || {}).reduce((a, b) => a + b, 0) + (parseInt(order.soupQty) || 0) + (parseInt(order.fruitQty) || 0);
 
+              // 🆕 擷取特別餐資料
+              const specialMealKeys = Object.keys(order.counts || {}).filter(k => k.startsWith('特別餐_'));
+
               return (
                 <div key={day} className={`border-2 rounded-[1.5rem] p-4 flex flex-col gap-3 min-h-[320px] transition-all ${total > 0 ? 'bg-white border-orange-300 shadow-xl' : 'bg-slate-50/80 border-slate-200'}`}>
                   <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
-                    <span className="text-3xl font-black text-slate-700">{day}</span>
+                    <span className="text-3xl font-black text-slate-700">
+                      {day}
+                      {/* 🆕 顯示推薦碼 Tag */}
+                      {order.referralCode && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full ml-2 align-middle border border-yellow-300">推薦碼: {order.referralCode}</span>}
+                    </span>
                     <div className="flex items-center gap-2 bg-emerald-50 px-2 py-1 rounded-xl border border-emerald-100">
                       <span className="text-xs font-black text-emerald-700">例湯</span>
                       <input type="number" min="0" value={order.soupQty || ''} onChange={(e) => updateSoup(dateStr, e.target.value)} placeholder="0" className="w-10 text-center font-black rounded-md outline-none bg-white py-1" />
@@ -251,7 +228,9 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
                       <input type="number" min="0" value={order.fruitQty || ''} onChange={(e) => updateFruit(dateStr, e.target.value)} placeholder="0" className="w-10 text-center font-black rounded-md outline-none bg-white py-1 border-rose-200" />
                     </div>
                   </div>
+                  
                   <div className="space-y-3 flex-1">
+                    {/* 日常餐 */}
                     {MEALS.map(m => (
                       <div key={m} className="bg-slate-50 p-2 rounded-xl border border-slate-100">
                         <div className="text-sm font-black text-orange-600 mb-2 truncate">({m}) {dayMenu[m] || '未設定'}</div>
@@ -270,6 +249,14 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
                         </div>
                       </div>
                     ))}
+                    
+                    {/* 🆕 渲染特別餐 */}
+                    {specialMealKeys.map(sk => (
+                      <div key={sk} className="bg-purple-50 p-2 rounded-xl border border-purple-100 mt-2">
+                        <div className="text-sm font-black text-purple-600 truncate">🌟 {sk.split('_')[1]} ({sk.split('_')[2]}) : <span className="text-lg">{order.counts[sk]}</span> 份</div>
+                      </div>
+                    ))}
+
                   </div>
                 </div>
               );
@@ -281,9 +268,6 @@ const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear
   );
 };
 
-// ==========================================
-// 🚀 主程式
-// ==========================================
 export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
@@ -310,53 +294,29 @@ export default function App() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
 
-  // --- 認證 ---
   useEffect(() => {
     if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setIsAuthChecking(false);
-    });
+    const unsubscribe = onAuthStateChanged(auth, (u) => { setUser(u); setIsAuthChecking(false); });
     return () => unsubscribe();
   }, []);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoginError('');
+    e.preventDefault(); setLoginError('');
     try { await signInWithEmailAndPassword(auth, loginEmail, loginPassword); } 
     catch (error) { setLoginError("登入失敗：請檢查電郵地址或密碼是否正確。"); }
   };
 
-  const handleLogout = async () => {
-    if (window.confirm("確定要登出系統嗎？")) await signOut(auth);
-  };
+  const handleLogout = async () => { if (window.confirm("確定要登出系統嗎？")) await signOut(auth); };
 
-  // --- 數據監聽 ---
   useEffect(() => {
     if (!user) return;
-    const unsubCust = onSnapshot(collection(db, 'customers'), (snap) => {
-      setCustomers(snap.docs.map(d => d.data()).sort((a,b) => String(a.id).localeCompare(String(b.id))));
-    });
-    const unsubMenu = onSnapshot(collection(db, 'menus'), (snap) => {
-      const mObj = {};
-      snap.docs.forEach(d => mObj[d.id] = d.data());
-      setMenus(mObj);
-    });
+    const unsubCust = onSnapshot(collection(db, 'customers'), (snap) => setCustomers(snap.docs.map(d => d.data()).sort((a,b) => String(a.id).localeCompare(String(b.id)))));
+    const unsubMenu = onSnapshot(collection(db, 'menus'), (snap) => { const mObj = {}; snap.docs.forEach(d => mObj[d.id] = d.data()); setMenus(mObj); });
     const qOrders = query(collection(db, 'orders'), where("date", "==", selectedDate));
-    const unsubOrders = onSnapshot(qOrders, (snap) => {
-      setOrders(snap.docs.map(d => d.data()));
-    });
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'options'), (docSnap) => {
-      if (docSnap.exists()) { setSysSettings(prev => ({ ...prev, ...docSnap.data() })); }
-    });
-    const unsubDishes = onSnapshot(collection(db, 'dishes'), (snap) => {
-      const dObj = {};
-      snap.docs.forEach(d => dObj[d.id] = d.data());
-      setDishes(dObj);
-    });
-    const unsubBlogs = onSnapshot(collection(db, 'blogs'), (snap) => {
-      setBlogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    const unsubOrders = onSnapshot(qOrders, (snap) => setOrders(snap.docs.map(d => d.data())));
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'options'), (docSnap) => { if (docSnap.exists()) setSysSettings(prev => ({ ...prev, ...docSnap.data() })); });
+    const unsubDishes = onSnapshot(collection(db, 'dishes'), (snap) => { const dObj = {}; snap.docs.forEach(d => dObj[d.id] = d.data()); setDishes(dObj); });
+    const unsubBlogs = onSnapshot(collection(db, 'blogs'), (snap) => setBlogs(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
 
     return () => { unsubCust(); unsubMenu(); unsubOrders(); unsubSettings(); unsubDishes(); unsubBlogs(); };
   }, [user, selectedDate]);
@@ -364,42 +324,26 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     const monthPrefix = selectedDate.substring(0, 7); 
-    const qMonth = query(
-      collection(db, 'orders'),
-      where("date", ">=", `${monthPrefix}-01`),
-      where("date", "<=", `${monthPrefix}-31`)
-    );
-    const unsubMonthly = onSnapshot(qMonth, (snap) => {
-      setMonthlyOrders(snap.docs.map(d => d.data()));
-    });
+    const qMonth = query(collection(db, 'orders'), where("date", ">=", `${monthPrefix}-01`), where("date", "<=", `${monthPrefix}-31`));
+    const unsubMonthly = onSnapshot(qMonth, (snap) => setMonthlyOrders(snap.docs.map(d => d.data())));
     return () => unsubMonthly();
   }, [user, selectedDate]);
 
-  // --- 智能檢查與建立菜品 SKU ---
   const processDish = async (dishName) => {
     if (!dishName || dishName.trim() === '') return null;
     const cleanName = dishName.trim();
     const safeDocId = cleanName.replace(/\//g, '或'); 
-    
     const dishRef = doc(db, 'dishes', safeDocId);
     const dishSnap = await getDocs(query(collection(db, 'dishes'), where("name", "==", cleanName)));
-    
-    if (!dishSnap.empty) {
-      return dishSnap.docs[0].data();
-    } else {
+    if (!dishSnap.empty) return dishSnap.docs[0].data();
+    else {
       const newSku = 'D-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-      const newDishData = {
-        name: cleanName,
-        sku: newSku,
-        nutrition: { kcal: 0, protein: 0, carbs: 0, fat: 0 },
-        createdAt: new Date().toISOString()
-      };
+      const newDishData = { name: cleanName, sku: newSku, nutrition: { kcal: 0, protein: 0, carbs: 0, fat: 0 }, createdAt: new Date().toISOString() };
       await setDoc(dishRef, newDishData);
       return newDishData;
     }
   };
 
-  // --- 導入邏輯 ---
   const handleMenuImport = async (e) => {
     const file = e.target.files[0];
     if (!file || !window.XLSX) return alert("請確保已載入 XLSX 庫");
@@ -409,19 +353,15 @@ export default function App() {
         const dataBuffer = new Uint8Array(evt.target.result);
         const wb = window.XLSX.read(dataBuffer, { type: 'array' });
         const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        
         for (let row of data) {
           const keys = Object.keys(row);
           const dateKey = keys.find(k => k.includes('日期') || k.includes('Date') || k.includes('date'));
           if (!dateKey || !row[dateKey]) continue;
-
           let dateStr = row[dateKey];
           if (typeof dateStr === 'number') {
             const d = new Date(Math.round((dateStr - 25569) * 86400 * 1000));
             dateStr = d.toISOString().split('T')[0];
-          } else {
-            dateStr = String(dateStr).trim().replace(/\//g, '-');
-          }
+          } else { dateStr = String(dateStr).trim().replace(/\//g, '-'); }
 
           const menuA = String(row[keys.find(k => k.includes('A餐') || k === 'A')] || "").trim();
           const menuB = String(row[keys.find(k => k.includes('B餐') || k === 'B')] || "").trim();
@@ -431,9 +371,7 @@ export default function App() {
           if (menuB) await processDish(menuB);
           if (menuC) await processDish(menuC);
 
-          await setDoc(doc(db, 'menus', dateStr), {
-            date: dateStr, A: menuA, B: menuB, C: menuC
-          }, { merge: true });
+          await setDoc(doc(db, 'menus', dateStr), { date: dateStr, A: menuA, B: menuB, C: menuC }, { merge: true });
         }
         alert("每月餐單及菜品庫同步導入成功！");
       } catch (err) { alert("導入出錯：" + err.message); }
@@ -450,36 +388,21 @@ export default function App() {
         const dataBuffer = new Uint8Array(evt.target.result);
         const wb = window.XLSX.read(dataBuffer, { type: 'array' });
         const data = window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
-        
         for (let row of data) {
           const keys = Object.keys(row);
           const findKey = (search) => keys.find(k => k.replace(/^\uFEFF/, '').trim().includes(search));
           const id = String(row[findKey('ID')] || row[findKey('id')] || "");
-          
           if (id && id.trim() !== "" && id !== "undefined") {
             const rawType = String(row[findKey('類型')] || "");
             let custType = CUST_TYPES[0]; 
-            if (rawType) {
-              const matched = CUST_TYPES.find(t => t.includes(rawType));
-              if (matched) custType = matched;
-            }
-
-            const rawUtensils = String(row[findKey('餐具')] || "").trim().toUpperCase();
-            const needsUtensils = ['Y', '是', 'TRUE', '1'].includes(rawUtensils);
-
-            const rawMenu = String(row[findKey('菜單')] || "").trim().toUpperCase();
-            const needsMenu = ['Y', '是', 'TRUE', '1'].includes(rawMenu);
+            if (rawType) { const matched = CUST_TYPES.find(t => t.includes(rawType)); if (matched) custType = matched; }
+            const needsUtensils = ['Y', '是', 'TRUE', '1'].includes(String(row[findKey('餐具')] || "").trim().toUpperCase());
+            const needsMenu = ['Y', '是', 'TRUE', '1'].includes(String(row[findKey('菜單')] || "").trim().toUpperCase());
 
             await setDoc(doc(db, 'customers', id), {
-              id, 
-              name: String(row[findKey('姓名')] || ""), 
-              address: String(row[findKey('地址')] || ""), 
-              phone: String(row[findKey('電話')] || ""), 
-              zone: String(row[findKey('線路')] || (sysSettings.zones && sysSettings.zones[0]) || ""), 
-              type: custType, 
-              institution: String(row[findKey('機構')] || ""), 
-              requirement: String(row[findKey('要求')] || row[findKey('備註')] || ""),
-              needsUtensils, needsMenu
+              id, name: String(row[findKey('姓名')] || ""), address: String(row[findKey('地址')] || ""), phone: String(row[findKey('電話')] || ""), 
+              zone: String(row[findKey('線路')] || (sysSettings.zones && sysSettings.zones[0]) || ""), type: custType, institution: String(row[findKey('機構')] || ""), 
+              requirement: String(row[findKey('要求')] || row[findKey('備註')] || ""), needsUtensils, needsMenu
             });
           }
         }
@@ -512,9 +435,7 @@ export default function App() {
           if (qtyMatch) {
             const qty = parseInt(qtyMatch[1]) || 1;
             const meal = qtyMatch[2];
-            await setDoc(doc(db, 'orders', `${dateStr}_${custId}`), {
-              date: dateStr, customerId: custId, counts: { [`${meal}_${texture}`]: qty }, soupQty: 0, fruitQty: 0
-            }, { merge: true });
+            await setDoc(doc(db, 'orders', `${dateStr}_${custId}`), { date: dateStr, customerId: custId, counts: { [`${meal}_${texture}`]: qty }, soupQty: 0, fruitQty: 0 }, { merge: true });
           }
         }
       }
@@ -523,11 +444,12 @@ export default function App() {
     reader.readAsArrayBuffer(file);
   };
 
-  // --- 數據統計 (自動拆解 SKU 俾廚房) ---
+  // --- 🆕 數據統計 (加入自動拆解「特別餐」) ---
   const dailySummary = useMemo(() => {
     const summary = { 
       A: { total: 0 }, B: { total: 0 }, C: { total: 0 }, Soup: 0, Fruit: 0,
-      Rice: { '正飯': 0, '爛飯': 0, '粥': 0, '無需飯': 0 }
+      Rice: { '正飯': 0, '爛飯': 0, '粥': 0, '無需飯': 0 },
+      Special: { total: 0 } // 🆕 加入特別餐分類
     };
     TEXTURES.forEach(t => { summary.A[t] = 0; summary.B[t] = 0; summary.C[t] = 0; });
     
@@ -540,11 +462,15 @@ export default function App() {
           const meatTex = parts[1];    
           const riceTex = parts[2] || '無需飯'; 
           
-          if (summary[meal] && summary[meal][meatTex] !== undefined) {
+          if (meal === '特別餐') {
+            const specialName = `${parts[1]} (${parts[2]})`;
+            summary.Special[specialName] = (summary.Special[specialName] || 0) + qty;
+            summary.Special.total += qty;
+          } else if (summary[meal] && summary[meal][meatTex] !== undefined) {
             summary[meal][meatTex] += qty;
             summary[meal].total += qty;
           }
-          if (summary.Rice[riceTex] !== undefined) {
+          if (meal !== '特別餐' && summary.Rice[riceTex] !== undefined) {
             summary.Rice[riceTex] += qty;
           }
         }
@@ -555,7 +481,7 @@ export default function App() {
     return summary;
   }, [orders]);
 
-  // --- 對數表數據計算 ---
+  // --- 🆕 月度對數 (加入「特別餐」) ---
   const monthlyReconciliationData = useMemo(() => {
     const report = {};
     monthlyOrders.forEach(o => {
@@ -563,22 +489,23 @@ export default function App() {
       if (!cust) return;
       const groupKey = cust.institution || "獨立個人客戶";
       
-      if (!report[groupKey]) {
-        report[groupKey] = { name: groupKey, A: 0, B: 0, C: 0, paste: 0, minced: 0, Soup: 0, Fruit: 0, totalMeals: 0, groups: {} };
-      }
-      if (!report[groupKey].groups[cust.id]) {
-        report[groupKey].groups[cust.id] = { name: cust.name, type: cust.type, A: 0, B: 0, C: 0, paste: 0, minced: 0, Soup: 0, Fruit: 0, total: 0 };
-      }
+      if (!report[groupKey]) report[groupKey] = { name: groupKey, A: 0, B: 0, C: 0, paste: 0, minced: 0, Special: 0, Soup: 0, Fruit: 0, totalMeals: 0, groups: {} };
+      if (!report[groupKey].groups[cust.id]) report[groupKey].groups[cust.id] = { name: cust.name, type: cust.type, A: 0, B: 0, C: 0, paste: 0, minced: 0, Special: 0, Soup: 0, Fruit: 0, total: 0 };
       
       let totalMealsForOrder = 0;
       Object.keys(o.counts || {}).forEach(k => {
         const qty = parseInt(o.counts[k]) || 0;
         if (qty > 0) {
           const [mealType, texture] = k.split('_');
-          if (['A', 'B', 'C'].includes(mealType)) {
+          
+          if (mealType === '特別餐') {
+            report[groupKey].Special += qty;
+            report[groupKey].groups[cust.id].Special += qty;
+          } else if (['A', 'B', 'C'].includes(mealType)) {
             report[groupKey][mealType] += qty;
             report[groupKey].groups[cust.id][mealType] += qty;
           }
+
           if (['分糊', '全糊'].includes(texture)) {
             report[groupKey].paste += qty;
             report[groupKey].groups[cust.id].paste += qty;
@@ -593,11 +520,9 @@ export default function App() {
       
       const soupQty = parseInt(o.soupQty) || 0;
       const fruitQty = parseInt(o.fruitQty) || 0;
-
       report[groupKey].totalMeals += totalMealsForOrder;
       report[groupKey].Soup += soupQty;
       report[groupKey].Fruit += fruitQty;
-      
       report[groupKey].groups[cust.id].total += totalMealsForOrder;
       report[groupKey].groups[cust.id].Soup += soupQty;
       report[groupKey].groups[cust.id].Fruit += fruitQty;
@@ -605,7 +530,6 @@ export default function App() {
     return Object.values(report).sort((a,b) => b.totalMeals - a.totalMeals);
   }, [monthlyOrders, customers]);
 
-  // --- 導出廚房總表 ---
   const exportKitchenExcel = () => {
     if (!window.XLSX) return alert("請確保已載入 XLSX 庫");
     const reportData = [];
@@ -614,15 +538,12 @@ export default function App() {
     reportData.push({ "規格": "", "A餐": "", "B餐": "", "C餐": "" });
     reportData.push({ "規格": "今日例湯總數量", "A餐": dailySummary.Soup, "B餐": "", "C餐": "" });
     reportData.push({ "規格": "今日生果總數量", "A餐": dailySummary.Fruit, "B餐": "", "C餐": "" });
-    // 可以係度加埋飯類匯出，日後需要時加
-
     const ws = window.XLSX.utils.json_to_sheet(reportData);
     const wb = window.XLSX.utils.book_new();
     window.XLSX.utils.book_append_sheet(wb, ws, "廚房總表");
     window.XLSX.writeFile(wb, `WeCare_廚房總表_${selectedDate}.xlsx`);
   };
 
-  // --- 生成列印標籤陣列 ---
   const stickersToPrint = useMemo(() => {
     const result = [];
     const zoneCounts = {};
@@ -641,12 +562,15 @@ export default function App() {
       if (c.type?.includes('B2B')) {
         Object.keys(o.counts || {}).forEach(k => {
           if (o.counts[k] > 0) {
-            const [meal, tex] = k.split('_');
+            const parts = k.split('_');
+            const meal = parts[0];
+            const tex = parts[1];
             result.push({
               type: 'B2B', customer: c,
               tag: c.type.includes('團體') ? '團 體 單' : '院 舍 單',
-              mealName: `(${meal}) ${(menus[selectedDate] || {})[meal]}`,
-              texture: tex, qty: o.counts[k]
+              mealName: meal === '特別餐' ? `🌟 ${parts[1]} (${parts[2]})` : `(${meal}) ${(menus[selectedDate] || {})[meal]}`,
+              texture: meal === '特別餐' ? '特' : tex, 
+              qty: o.counts[k]
             });
           }
         });
@@ -655,7 +579,7 @@ export default function App() {
       } else {
         let primaryTex = '';
         for (const k of Object.keys(o.counts || {})) {
-          if (o.counts[k] > 0) { primaryTex = k.split('_')[1]; break; }
+          if (o.counts[k] > 0) { primaryTex = k.startsWith('特別餐') ? '特' : k.split('_')[1]; break; }
         }
         result.push({ type: 'B2C', customer: c, order: o, primaryTex: primaryTex || (soupCounts ? '湯' : '果') });
       }
@@ -665,10 +589,6 @@ export default function App() {
     return [...routeStickers, ...result.filter(s => s.type === 'B2B'), ...result.filter(s => s.type === 'B2C')];
   }, [orders, customers, menus, selectedDate]);
 
-
-  // ==========================================
-  // 🔒 登入介面
-  // ==========================================
   if (initError) return <div className="p-10 font-bold text-red-500">{initError}</div>;
   if (isAuthChecking) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-400">系統載入中...</div>;
   if (!user) {
@@ -676,10 +596,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md p-12 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-3 bg-orange-500"></div>
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-24 h-24 bg-slate-50 rounded-3xl p-2 mb-6 flex items-center justify-center shadow-inner"><img src="/logo.png" alt="WeCare" className="w-full h-full object-contain" /></div>
-            <h1 className="text-4xl font-black italic text-slate-900 tracking-tighter">WECARE</h1>
-          </div>
+          <div className="flex flex-col items-center mb-10"><div className="w-24 h-24 bg-slate-50 rounded-3xl p-2 mb-6 flex items-center justify-center shadow-inner"><img src="/logo.png" alt="WeCare" className="w-full h-full object-contain" /></div><h1 className="text-4xl font-black italic text-slate-900 tracking-tighter">WECARE</h1></div>
           <form onSubmit={handleLogin} className="space-y-6">
             <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="員工電郵" />
             <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="登入密碼" />
@@ -740,12 +657,7 @@ export default function App() {
                   <h4 className="text-2xl font-black text-slate-800 leading-tight">{c.name}</h4>
                   <div className="mt-2 flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest"><Building2 size={12}/> {c.institution || "獨立個人"}</div>
                   <p className="text-xs text-slate-400 mt-6 leading-relaxed grow line-clamp-2"><MapPin size={12} className="inline mr-2"/>{c.address}</p>
-                  
-                  <div className="mt-4 flex gap-2">
-                    {c.needsUtensils && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-bold">🍴 需餐具</span>}
-                    {c.needsMenu && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-bold">📄 附菜單</span>}
-                  </div>
-
+                  <div className="mt-4 flex gap-2">{c.needsUtensils && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-bold">🍴 需餐具</span>}{c.needsMenu && <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-bold">📄 附菜單</span>}</div>
                   <div className="mt-6 flex gap-3 pt-6 border-t border-slate-50">
                     <button onClick={() => setSelectedCustomer(c)} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-orange-600 transition-all shadow-lg active:scale-95">全月點餐月曆</button>
                     <button onClick={() => setEditingCustomer(c)} className="p-4 border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all shadow-sm bg-white" title="修改或刪除客戶"><Edit2 size={18}/></button>
@@ -761,12 +673,8 @@ export default function App() {
              <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
                <ChefHat size={56} className="text-orange-500 mb-8" />
                <h3 className="text-2xl font-black mb-4">全月餐單導入 (Excel)</h3>
-               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">
-                 Excel 標題列請包含「日期」(格式 YYYY-MM-DD)、「A餐」、「B餐」及「C餐」。<br/>系統會自動過濾重複菜式並生成唯一 SKU。
-               </p>
-               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">
-                 選擇餐單檔案<input type="file" onChange={handleMenuImport} className="hidden" />
-               </label>
+               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">Excel 標題列請包含「日期」(格式 YYYY-MM-DD)、「A餐」、「B餐」及「C餐」。<br/>系統會自動過濾重複菜式並生成唯一 SKU。</p>
+               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">選擇餐單檔案<input type="file" onChange={handleMenuImport} className="hidden" /></label>
              </div>
            </div>
         )}
@@ -777,49 +685,21 @@ export default function App() {
               <h3 className="text-2xl font-black mb-6 text-slate-800 tracking-tighter">菜品庫與營養參數</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                  <thead className="bg-slate-50">
-                    <tr className="border-b-2 border-slate-100 text-slate-400 text-[10px] uppercase font-black tracking-widest">
-                      <th className="p-4 rounded-tl-xl">SKU 代碼</th>
-                      <th className="p-4">菜式名稱</th>
-                      <th className="p-4 text-center">卡路里 (kcal)</th>
-                      <th className="p-4 text-center">蛋白質 (g)</th>
-                      <th className="p-4 text-center">碳水化合物 (g)</th>
-                      <th className="p-4 text-center rounded-tr-xl">脂肪 (g)</th>
-                    </tr>
-                  </thead>
+                  <thead className="bg-slate-50"><tr className="border-b-2 border-slate-100 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th className="p-4 rounded-tl-xl">SKU 代碼</th><th className="p-4">菜式名稱</th><th className="p-4 text-center">卡路里 (kcal)</th><th className="p-4 text-center">蛋白質 (g)</th><th className="p-4 text-center">碳水化合物 (g)</th><th className="p-4 text-center rounded-tr-xl">脂肪 (g)</th></tr></thead>
                   <tbody className="divide-y divide-slate-50 font-bold text-sm text-slate-700">
                     {Object.values(dishes).map((dish) => {
                       const safeDocId = dish.name.replace(/\//g, '或');
                       return (
                         <tr key={dish.sku} className="hover:bg-orange-50/30 transition-colors">
-                          <td className="p-4 text-orange-500 font-black tracking-widest">{dish.sku}</td>
-                          <td className="p-4 text-base">{dish.name}</td>
-                          <td className="p-4 text-center">
-                            <input type="number" defaultValue={dish.nutrition?.kcal || 0} 
-                              onBlur={(e) => setDoc(doc(db, 'dishes', safeDocId), { nutrition: { ...dish.nutrition, kcal: Number(e.target.value) } }, { merge: true })}
-                              className="w-20 p-2 bg-slate-50 border-none rounded-lg text-center outline-none focus:ring-2 focus:ring-orange-500 font-black" />
-                          </td>
-                          <td className="p-4 text-center">
-                            <input type="number" defaultValue={dish.nutrition?.protein || 0} 
-                              onBlur={(e) => setDoc(doc(db, 'dishes', safeDocId), { nutrition: { ...dish.nutrition, protein: Number(e.target.value) } }, { merge: true })}
-                              className="w-20 p-2 bg-slate-50 border-none rounded-lg text-center outline-none focus:ring-2 focus:ring-orange-500 font-black" />
-                          </td>
-                          <td className="p-4 text-center">
-                            <input type="number" defaultValue={dish.nutrition?.carbs || 0} 
-                              onBlur={(e) => setDoc(doc(db, 'dishes', safeDocId), { nutrition: { ...dish.nutrition, carbs: Number(e.target.value) } }, { merge: true })}
-                              className="w-20 p-2 bg-slate-50 border-none rounded-lg text-center outline-none focus:ring-2 focus:ring-orange-500 font-black" />
-                          </td>
-                          <td className="p-4 text-center">
-                            <input type="number" defaultValue={dish.nutrition?.fat || 0} 
-                              onBlur={(e) => setDoc(doc(db, 'dishes', safeDocId), { nutrition: { ...dish.nutrition, fat: Number(e.target.value) } }, { merge: true })}
-                              className="w-20 p-2 bg-slate-50 border-none rounded-lg text-center outline-none focus:ring-2 focus:ring-orange-500 font-black" />
-                          </td>
+                          <td className="p-4 text-orange-500 font-black tracking-widest">{dish.sku}</td><td className="p-4 text-base">{dish.name}</td>
+                          <td className="p-4 text-center"><input type="number" defaultValue={dish.nutrition?.kcal || 0} onBlur={(e) => setDoc(doc(db, 'dishes', safeDocId), { nutrition: { ...dish.nutrition, kcal: Number(e.target.value) } }, { merge: true })} className="w-20 p-2 bg-slate-50 border-none rounded-lg text-center outline-none focus:ring-2 focus:ring-orange-500 font-black" /></td>
+                          <td className="p-4 text-center"><input type="number" defaultValue={dish.nutrition?.protein || 0} onBlur={(e) => setDoc(doc(db, 'dishes', safeDocId), { nutrition: { ...dish.nutrition, protein: Number(e.target.value) } }, { merge: true })} className="w-20 p-2 bg-slate-50 border-none rounded-lg text-center outline-none focus:ring-2 focus:ring-orange-500 font-black" /></td>
+                          <td className="p-4 text-center"><input type="number" defaultValue={dish.nutrition?.carbs || 0} onBlur={(e) => setDoc(doc(db, 'dishes', safeDocId), { nutrition: { ...dish.nutrition, carbs: Number(e.target.value) } }, { merge: true })} className="w-20 p-2 bg-slate-50 border-none rounded-lg text-center outline-none focus:ring-2 focus:ring-orange-500 font-black" /></td>
+                          <td className="p-4 text-center"><input type="number" defaultValue={dish.nutrition?.fat || 0} onBlur={(e) => setDoc(doc(db, 'dishes', safeDocId), { nutrition: { ...dish.nutrition, fat: Number(e.target.value) } }, { merge: true })} className="w-20 p-2 bg-slate-50 border-none rounded-lg text-center outline-none focus:ring-2 focus:ring-orange-500 font-black" /></td>
                         </tr>
                       );
                     })}
-                    {Object.keys(dishes).length === 0 && (
-                      <tr><td colSpan="6" className="p-10 text-center text-slate-400">目前未有菜品資料，請先匯入每月餐單。</td></tr>
-                    )}
+                    {Object.keys(dishes).length === 0 && (<tr><td colSpan="6" className="p-10 text-center text-slate-400">目前未有菜品資料，請先匯入每月餐單。</td></tr>)}
                   </tbody>
                 </table>
               </div>
@@ -833,14 +713,10 @@ export default function App() {
               <div><h3 className="text-2xl font-black text-slate-800">健康資訊管理</h3><p className="text-sm text-slate-400 font-bold mt-1">管理前台顯示的文章與養生推介</p></div>
               <button onClick={() => setEditingBlog({})} className="bg-orange-500 text-white px-6 py-4 rounded-2xl font-black shadow-lg hover:bg-orange-600 transition-all flex items-center gap-2 active:scale-95"><Plus size={18}/> 新增文章</button>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {blogs.map(blog => (
                 <div key={blog.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col h-full hover:shadow-xl transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest bg-orange-50 text-orange-500">{blog.category}</span>
-                    <span className="text-xs text-slate-400 font-bold">{blog.date}</span>
-                  </div>
+                  <div className="flex justify-between items-start mb-4"><span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest bg-orange-50 text-orange-500">{blog.category}</span><span className="text-xs text-slate-400 font-bold">{blog.date}</span></div>
                   <h4 className="text-xl font-black text-slate-800 leading-tight mb-3">{blog.title}</h4>
                   <p className="text-sm text-slate-500 leading-relaxed grow line-clamp-3 mb-6">{blog.summary}</p>
                   <button onClick={() => setEditingBlog(blog)} className="w-full py-3 bg-slate-50 text-slate-600 rounded-xl font-black text-sm hover:bg-slate-900 hover:text-white transition-all">修改文章</button>
@@ -855,118 +731,59 @@ export default function App() {
           <div className="grid grid-cols-2 gap-8 animate-in fade-in duration-500">
             <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
               <h3 className="text-2xl font-black mb-6">派送路線設定</h3>
-              <div className="flex gap-2 mb-6">
-                <input id="newZoneInput" placeholder="輸入新路線名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" />
-                <button onClick={async () => {
-                  const val = document.getElementById('newZoneInput').value.trim();
-                  if (val && !(sysSettings.zones || []).includes(val)) {
-                    const newZones = [...(sysSettings.zones || []), val];
-                    await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones });
-                    document.getElementById('newZoneInput').value = '';
-                  }
-                }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button>
-              </div>
-              <div className="space-y-2">
-                {(sysSettings.zones || []).map(z => (
-                  <div key={z} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold">
-                    <span>{z}</span>
-                    <button onClick={async () => {
-                      if(window.confirm(`確定刪除路線「${z}」？`)) {
-                        const newZones = sysSettings.zones.filter(item => item !== z);
-                        await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones });
-                      }
-                    }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
-                  </div>
-                ))}
-              </div>
+              <div className="flex gap-2 mb-6"><input id="newZoneInput" placeholder="輸入新路線名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" /><button onClick={async () => { const val = document.getElementById('newZoneInput').value.trim(); if (val && !(sysSettings.zones || []).includes(val)) { const newZones = [...(sysSettings.zones || []), val]; await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones }); document.getElementById('newZoneInput').value = ''; } }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button></div>
+              <div className="space-y-2">{(sysSettings.zones || []).map(z => (<div key={z} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold"><span>{z}</span><button onClick={async () => { if(window.confirm(`確定刪除路線「${z}」？`)) { const newZones = sysSettings.zones.filter(item => item !== z); await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones }); } }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button></div>))}</div>
             </div>
-
             <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
               <h3 className="text-2xl font-black mb-6">CCSV 機構選項設定</h3>
-              <div className="flex gap-2 mb-6">
-                <input id="newInstInput" placeholder="輸入新機構名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" />
-                <button onClick={async () => {
-                  const val = document.getElementById('newInstInput').value.trim();
-                  if (val && !(sysSettings.institutions || []).includes(val)) {
-                    const newInst = [...(sysSettings.institutions || []), val];
-                    await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst });
-                    document.getElementById('newInstInput').value = '';
-                  }
-                }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button>
-              </div>
-              <div className="space-y-2">
-                {(sysSettings.institutions || []).map(inst => (
-                  <div key={inst} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold">
-                    <span>{inst}</span>
-                    <button onClick={async () => {
-                      if(window.confirm(`確定刪除機構「${inst}」？`)) {
-                        const newInst = sysSettings.institutions.filter(item => item !== inst);
-                        await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst });
-                      }
-                    }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
-                  </div>
-                ))}
-              </div>
+              <div className="flex gap-2 mb-6"><input id="newInstInput" placeholder="輸入新機構名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" /><button onClick={async () => { const val = document.getElementById('newInstInput').value.trim(); if (val && !(sysSettings.institutions || []).includes(val)) { const newInst = [...(sysSettings.institutions || []), val]; await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst }); document.getElementById('newInstInput').value = ''; } }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button></div>
+              <div className="space-y-2">{(sysSettings.institutions || []).map(inst => (<div key={inst} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold"><span>{inst}</span><button onClick={async () => { if(window.confirm(`確定刪除機構「${inst}」？`)) { const newInst = sysSettings.institutions.filter(item => item !== inst); await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst }); } }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button></div>))}</div>
             </div>
           </div>
         )}
 
         {activeTab === 'add' && (
            <div className="max-w-4xl mx-auto space-y-8">
-             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
-               <Upload size={56} className="text-orange-500 mb-8" />
-               <h3 className="text-2xl font-black mb-4">全月批量訂單導入 (Excel)</h3>
-               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">支援「25A」或「15B-」格式。橫向填寫 1-31 號之點餐數量及類別。</p>
-               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">選擇檔案導入<input type="file" onChange={handleMassImportOrders} className="hidden" /></label>
-             </div>
-             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
-               <Users size={56} className="text-blue-500 mb-8" />
-               <h3 className="text-2xl font-black mb-4">批量導入客戶基本資料表</h3>
-               <label className="bg-blue-600 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-blue-700 transition-all shadow-xl active:scale-95">選擇客戶表導入<input type="file" onChange={handleCustImport} className="hidden" /></label>
-             </div>
+             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center"><Upload size={56} className="text-orange-500 mb-8" /><h3 className="text-2xl font-black mb-4">全月批量訂單導入 (Excel)</h3><p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">支援「25A」或「15B-」格式。橫向填寫 1-31 號之點餐數量及類別。</p><label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">選擇檔案導入<input type="file" onChange={handleMassImportOrders} className="hidden" /></label></div>
+             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center"><Users size={56} className="text-blue-500 mb-8" /><h3 className="text-2xl font-black mb-4">批量導入客戶基本資料表</h3><label className="bg-blue-600 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-blue-700 transition-all shadow-xl active:scale-95">選擇客戶表導入<input type="file" onChange={handleCustImport} className="hidden" /></label></div>
            </div>
         )}
 
         {activeTab === 'stickers' && (
           <div className="space-y-8 no-print animate-in fade-in duration-500">
              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-6">
-               <div className="flex items-center justify-between mb-2">
-                 <div><h4 className="font-black text-3xl text-slate-800 tracking-tighter">今日出餐總計</h4><p className="text-xs text-slate-400 font-bold uppercase mt-1">Daily Meal Summary</p></div>
-                 <button onClick={() => window.print()} className="bg-orange-500 text-white px-10 py-5 rounded-2xl font-black shadow-lg active:scale-95">列印所有出餐貼紙</button>
-               </div>
+               <div className="flex items-center justify-between mb-2"><div><h4 className="font-black text-3xl text-slate-800 tracking-tighter">今日出餐總計</h4><p className="text-xs text-slate-400 font-bold uppercase mt-1">Daily Meal Summary</p></div><button onClick={() => window.print()} className="bg-orange-500 text-white px-10 py-5 rounded-2xl font-black shadow-lg active:scale-95">列印所有出餐貼紙</button></div>
                
-               <div className="grid grid-cols-5 gap-6">
+               {/* 🆕 加入特別餐分類 Box */}
+               <div className="grid grid-cols-6 gap-6">
                  {MEALS.map(m => (
                    <div key={m} className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                      <div className="font-black text-xl text-slate-700 mb-4 pb-4 border-b border-slate-200">{m}餐 <span className="text-orange-500 ml-2">共 {dailySummary[m].total} 份</span></div>
-                     <div className="space-y-2">
-                       {TEXTURES.map(t => dailySummary[m][t] > 0 && (
-                         <div key={t} className="flex justify-between items-center text-sm font-bold text-slate-600"><span>{t}</span><span className="bg-white px-3 py-1 rounded-lg border">{dailySummary[m][t]}</span></div>
-                       ))}
-                     </div>
+                     <div className="space-y-2">{TEXTURES.map(t => dailySummary[m][t] > 0 && (<div key={t} className="flex justify-between items-center text-sm font-bold text-slate-600"><span>{t}</span><span className="bg-white px-3 py-1 rounded-lg border">{dailySummary[m][t]}</span></div>))}</div>
                    </div>
                  ))}
+                 
+                 <div className="bg-purple-50 p-6 rounded-3xl border border-purple-100">
+                   <div className="font-black text-xl text-purple-700 mb-4 pb-4 border-b border-purple-200">特別餐 <span className="text-orange-500 ml-2">共 {dailySummary.Special.total} 份</span></div>
+                   <div className="space-y-2">
+                     {Object.keys(dailySummary.Special).filter(k => k !== 'total').map(t => (
+                       <div key={t} className="flex justify-between items-center text-sm font-bold text-slate-600"><span className="truncate mr-2">{t}</span><span className="bg-white px-3 py-1 rounded-lg border">{dailySummary.Special[t]}</span></div>
+                     ))}
+                   </div>
+                 </div>
+
                  <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex flex-col justify-center items-center text-center">
-                   <div className="font-black text-xl text-emerald-800 mb-2">例湯總數</div>
-                   <div className="text-6xl font-black text-emerald-500">{dailySummary.Soup}</div>
+                   <div className="font-black text-xl text-emerald-800 mb-2">例湯總數</div><div className="text-5xl font-black text-emerald-500">{dailySummary.Soup}</div>
                  </div>
                  <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col justify-center items-center text-center">
-                   <div className="font-black text-xl text-rose-800 mb-2">生果總數</div>
-                   <div className="text-6xl font-black text-rose-500">{dailySummary.Fruit}</div>
+                   <div className="font-black text-xl text-rose-800 mb-2">生果總數</div><div className="text-5xl font-black text-rose-500">{dailySummary.Fruit}</div>
                  </div>
                </div>
              </div>
              
              <div className="grid grid-cols-2 gap-6 pb-20">
                 {stickersToPrint.map((sticker, idx) => {
-                  if (sticker.type === 'ROUTE') {
-                    return (
-                      <div key={`route-${idx}`} className="bg-white border-4 border-black p-8 h-[380px] flex flex-col justify-center items-center font-bold break-inside-avoid shadow-sm rounded-3xl">
-                        <div className="text-6xl font-black text-center leading-snug tracking-widest mb-6">{sticker.zone}<br/>(共 {sticker.count} 單)</div>
-                        <div className="w-full border-t-8 border-black pt-6 mt-4"><div className="text-5xl font-black text-center tracking-widest">*用保溫箱</div></div>
-                      </div>
-                    );
-                  }
+                  if (sticker.type === 'ROUTE') return (<div key={`route-${idx}`} className="bg-white border-4 border-black p-8 h-[380px] flex flex-col justify-center items-center font-bold break-inside-avoid shadow-sm rounded-3xl"><div className="text-6xl font-black text-center leading-snug tracking-widest mb-6">{sticker.zone}<br/>(共 {sticker.count} 單)</div><div className="w-full border-t-8 border-black pt-6 mt-4"><div className="text-5xl font-black text-center tracking-widest">*用保溫箱</div></div></div>);
 
                   const c = sticker.customer;
 
@@ -974,14 +791,8 @@ export default function App() {
                     const reqStr = `${c.needsUtensils ? '要餐具' : '走餐具'} | ${c.requirement || '保溫箱'}`;
                     return (
                       <div key={`b2b-${c.id}-${idx}`} className="bg-white border-4 border-black p-6 h-[380px] flex flex-col font-bold break-inside-avoid shadow-sm rounded-3xl">
-                        <div className="text-5xl font-black text-center tracking-widest mb-3">{sticker.tag}</div>
-                        <div className="bg-black text-white text-[32px] font-black text-center py-3 px-2 leading-tight w-full" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>{c.institution}</div>
-                        <div className="text-xl text-center font-black my-4 px-2">{c.address}</div>
-                        <div className="w-full border-b-4 border-black mb-4"></div>
-                        <div className="flex-1 flex flex-col justify-center items-center">
-                          <div className="text-4xl text-center font-black mb-3">{sticker.mealName}</div>
-                          <div className="text-6xl text-center font-black tracking-widest">{sticker.texture}{sticker.texture.includes('湯') || sticker.texture.includes('果') ? '' : '餐'} x {sticker.qty}</div>
-                        </div>
+                        <div className="text-5xl font-black text-center tracking-widest mb-3">{sticker.tag}</div><div className="bg-black text-white text-[32px] font-black text-center py-3 px-2 leading-tight w-full" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>{c.institution}</div><div className="text-xl text-center font-black my-4 px-2">{c.address}</div><div className="w-full border-b-4 border-black mb-4"></div>
+                        <div className="flex-1 flex flex-col justify-center items-center"><div className="text-4xl text-center font-black mb-3">{sticker.mealName}</div><div className="text-6xl text-center font-black tracking-widest">{sticker.texture}{sticker.texture.includes('湯') || sticker.texture.includes('果') ? '' : '餐'} x {sticker.qty}</div></div>
                         <div className="w-full border-t-4 border-black pt-4 mt-2"><div className="text-2xl text-center font-black tracking-wider">{reqStr}</div></div>
                       </div>
                     );
@@ -993,22 +804,23 @@ export default function App() {
 
                   return (
                     <div key={`b2c-${c.id}`} className="bg-white border-4 border-black p-8 h-[380px] flex flex-col font-bold break-inside-avoid shadow-sm rounded-3xl relative">
-                       <div className="text-[52px] font-black text-center tracking-widest mb-2 leading-none">{c.name}</div>
-                       <div className="w-full border-b-8 border-black mb-4"></div>
-                       <div className="text-2xl text-center font-black mb-6 h-16 overflow-hidden">{c.address}</div>
+                       <div className="text-[52px] font-black text-center tracking-widest mb-2 leading-none">{c.name}</div><div className="w-full border-b-8 border-black mb-4"></div><div className="text-2xl text-center font-black mb-6 h-16 overflow-hidden">{c.address}</div>
                        <div className="flex-1 text-[26px] font-black space-y-3">
+                          {/* 🆕 支援標籤顯示特別餐 */}
                           {Object.keys(o.counts || {}).map(k => o.counts[k] > 0 && (
-                            <div key={k} className="flex gap-4"><span>({k.split('_')[0]}餐) {(menus[selectedDate] || {})[k.split('_')[0]]}:</span><span>{o.counts[k]}</span></div>
+                            <div key={k} className="flex gap-4">
+                              {k.startsWith('特別餐') ? (
+                                <><span>🌟 {k.split('_')[1]} ({k.split('_')[2]}):</span><span>{o.counts[k]}</span></>
+                              ) : (
+                                <><span>({k.split('_')[0]}餐) {(menus[selectedDate] || {})[k.split('_')[0]] || ''}:</span><span>{o.counts[k]}</span></>
+                              )}
+                            </div>
                           ))}
                           {soupCounts > 0 && <div className="flex gap-4"><span>🍲 今日例湯:</span><span>{soupCounts}</span></div>}
                           {fruitCounts > 0 && <div className="flex gap-4"><span>🍎 是日生果:</span><span>{fruitCounts}</span></div>}
                        </div>
                        <div className="flex justify-between items-end mt-4">
-                         <div className="text-[28px] font-black tracking-widest space-y-2 max-w-[70%] leading-snug">
-                           <div>{c.needsUtensils ? '*要餐具' : '*不要餐具'}</div>
-                           {c.needsMenu && <div>*附菜單</div>}
-                           {c.requirement && <div className="text-2xl">*{c.requirement}</div>}
-                         </div>
+                         <div className="text-[28px] font-black tracking-widest space-y-2 max-w-[70%] leading-snug"><div>{c.needsUtensils ? '*要餐具' : '*不要餐具'}</div>{c.needsMenu && <div>*附菜單</div>}{c.requirement && <div className="text-2xl">*{c.requirement}</div>}</div>
                          <div className="w-[85px] h-[85px] rounded-full border-8 border-black flex items-center justify-center text-[40px] font-black absolute bottom-6 right-8">{sticker.primaryTex}</div>
                        </div>
                     </div>
@@ -1020,14 +832,13 @@ export default function App() {
 
         {activeTab === 'recon' && (
           <div className="bg-white rounded-[3rem] shadow-sm border overflow-hidden animate-in fade-in duration-500">
-            <div className="p-10 border-b flex justify-between items-center bg-slate-50/50">
-               <div><h3 className="font-black text-2xl tracking-tighter">機構對數月度彙報 (含各餐點明細)</h3><p className="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">目前顯示月份：{selectedDate.substring(0, 7)}</p></div>
-            </div>
+            <div className="p-10 border-b flex justify-between items-center bg-slate-50/50"><div><h3 className="font-black text-2xl tracking-tighter">機構對數月度彙報 (含各餐點明細)</h3><p className="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">目前顯示月份：{selectedDate.substring(0, 7)}</p></div></div>
             <table className="w-full text-sm">
               <thead className="bg-slate-50">
                 <tr className="text-slate-400 text-[10px] uppercase font-black tracking-widest border-b">
                   <th className="p-4 text-left pl-8">對數機構 / 團體單名稱</th>
                   <th className="p-4 text-center">A餐</th><th className="p-4 text-center">B餐</th><th className="p-4 text-center">C餐</th>
+                  <th className="p-4 text-center text-purple-500">特別餐</th>
                   <th className="p-4 text-center">糊餐</th><th className="p-4 text-center">免治餐</th>
                   <th className="p-4 text-center">例湯</th><th className="p-4 text-center">生果</th>
                   <th className="p-4 text-center">總餐數</th>
@@ -1038,19 +849,17 @@ export default function App() {
                   <React.Fragment key={r.name}>
                     <tr className="bg-orange-50/50 hover:bg-orange-50 transition-colors">
                       <td className="p-5 pl-8 text-lg font-black text-slate-800">🏢 {r.name}</td>
-                      <td className="p-5 text-center text-lg font-black text-orange-600">{r.A}</td>
-                      <td className="p-5 text-center text-lg font-black text-blue-600">{r.B}</td>
-                      <td className="p-5 text-center text-lg font-black text-emerald-600">{r.C}</td>
-                      <td className="p-5 text-center text-lg font-black text-purple-600">{r.paste}</td>
-                      <td className="p-5 text-center text-lg font-black text-rose-600">{r.minced}</td>
-                      <td className="p-5 text-center text-lg font-black text-slate-500">{r.Soup}</td>
-                      <td className="p-5 text-center text-lg font-black text-rose-500">{r.Fruit}</td>
+                      <td className="p-5 text-center text-lg font-black text-orange-600">{r.A}</td><td className="p-5 text-center text-lg font-black text-blue-600">{r.B}</td><td className="p-5 text-center text-lg font-black text-emerald-600">{r.C}</td>
+                      <td className="p-5 text-center text-lg font-black text-purple-600">{r.Special}</td>
+                      <td className="p-5 text-center text-lg font-black text-purple-400">{r.paste}</td><td className="p-5 text-center text-lg font-black text-rose-400">{r.minced}</td>
+                      <td className="p-5 text-center text-lg font-black text-slate-500">{r.Soup}</td><td className="p-5 text-center text-lg font-black text-rose-500">{r.Fruit}</td>
                       <td className="p-5 text-center text-xl font-black text-slate-900">{r.totalMeals}</td>
                     </tr>
                     {Object.values(r.groups).map(g => (
                       <tr key={g.name} className="hover:bg-slate-50 transition-colors text-slate-600">
                         <td className="p-4 pl-14 border-l-4 border-orange-200">↳ {g.name} <span className="ml-2 px-2 py-0.5 bg-slate-100 text-[9px] rounded-full">{g.type}</span></td>
                         <td className="p-4 text-center text-slate-500">{g.A}</td><td className="p-4 text-center text-slate-500">{g.B}</td><td className="p-4 text-center text-slate-500">{g.C}</td>
+                        <td className="p-4 text-center text-purple-500">{g.Special}</td>
                         <td className="p-4 text-center text-purple-400">{g.paste}</td><td className="p-4 text-center text-rose-400">{g.minced}</td>
                         <td className="p-4 text-center text-slate-400">{g.Soup}</td><td className="p-4 text-center text-rose-400">{g.Fruit}</td>
                         <td className="p-4 text-center font-black text-slate-800">{g.total}</td>
@@ -1058,35 +867,18 @@ export default function App() {
                     ))}
                   </React.Fragment>
                 ))}
-                {monthlyReconciliationData.length === 0 && (<tr><td colSpan="9" className="p-10 text-center text-slate-400">此月份暫無訂單數據</td></tr>)}
+                {monthlyReconciliationData.length === 0 && (<tr><td colSpan="10" className="p-10 text-center text-slate-400">此月份暫無訂單數據</td></tr>)}
               </tbody>
             </table>
           </div>
         )}
 
-        {selectedCustomer && (
-          <CustomerCalendar customer={selectedCustomer} currentMonth={currentMonth} setCurrentMonth={setCurrentMonth} currentYear={currentYear} menus={menus} db={db} onClose={() => setSelectedCustomer(null)} />
-        )}
-        {editingCustomer && (
-          <CustomerEditModal customer={editingCustomer} db={db} sysSettings={sysSettings} onClose={() => setEditingCustomer(null)} />
-        )}
-        {editingBlog && (
-          <BlogEditModal blog={editingBlog} db={db} onClose={() => setEditingBlog(null)} />
-        )}
+        {selectedCustomer && (<CustomerCalendar customer={selectedCustomer} currentMonth={currentMonth} setCurrentMonth={setCurrentMonth} currentYear={currentYear} menus={menus} db={db} onClose={() => setSelectedCustomer(null)} />)}
+        {editingCustomer && (<CustomerEditModal customer={editingCustomer} db={db} sysSettings={sysSettings} onClose={() => setEditingCustomer(null)} />)}
+        {editingBlog && (<BlogEditModal blog={editingBlog} db={db} onClose={() => setEditingBlog(null)} />)}
       </main>
       
-      <style>{`
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        @media print {
-          .no-print { display: none !important; }
-          main { margin-left: 0 !important; padding: 0 !important; background: white; }
-          .grid { display: grid !important; grid-template-cols: 1fr 1fr !important; gap: 15px !important; }
-          .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
-      `}</style>
+      <style>{`::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; } @media print { .no-print { display: none !important; } main { margin-left: 0 !important; padding: 0 !important; background: white; } .grid { display: grid !important; grid-template-cols: 1fr 1fr !important; gap: 15px !important; } .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }`}</style>
     </div>
   );
 }
