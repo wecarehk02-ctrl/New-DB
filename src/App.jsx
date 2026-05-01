@@ -668,16 +668,66 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'menu' && (
-           <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
-               <ChefHat size={56} className="text-orange-500 mb-8" />
-               <h3 className="text-2xl font-black mb-4">全月餐單導入 (Excel)</h3>
-               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">Excel 標題列請包含「日期」(格式 YYYY-MM-DD)、「A餐」、「B餐」及「C餐」。<br/>系統會自動過濾重複菜式並生成唯一 SKU。</p>
-               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">選擇餐單檔案<input type="file" onChange={handleMenuImport} className="hidden" /></label>
-             </div>
-           </div>
-        )}
+        {activeTab === 'menu' && (() => {
+          // 根據右上角選擇嘅日期，計算出當月日數
+          const year = parseInt(selectedDate.substring(0, 4));
+          const month = parseInt(selectedDate.substring(5, 7));
+          const daysInMonth = new Date(year, month, 0).getDate();
+          
+          // 準備當月嘅餐單數據陣列
+          const monthMenuData = [];
+          for(let i = 1; i <= daysInMonth; i++) {
+             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+             const dayOfWeek = ['日', '一', '二', '三', '四', '五', '六'][new Date(year, month-1, i).getDay()];
+             monthMenuData.push({ dateStr, dayOfWeek, ...menus[dateStr] });
+          }
+
+          return (
+            <div className="space-y-8 animate-in fade-in duration-500">
+              {/* 頂部控制列 */}
+              <div className="flex justify-between items-center bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tighter">每月餐單一覽</h3>
+                  <p className="text-sm text-slate-400 font-bold mt-1 uppercase tracking-widest">目前顯示：{year}年 {month}月</p>
+                </div>
+                <label className="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:bg-orange-600 transition-all cursor-pointer flex items-center gap-2 active:scale-95">
+                  <Upload size={18}/> 匯入 Excel 餐單
+                  <input type="file" onChange={handleMenuImport} className="hidden" />
+                </label>
+              </div>
+
+              {/* 餐單表格 */}
+              <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                 <table className="w-full text-left">
+                    <thead className="bg-slate-50">
+                      <tr className="border-b-2 border-slate-100 text-slate-400 text-[10px] uppercase font-black tracking-widest">
+                        <th className="p-5 w-40 pl-8 rounded-tl-[2rem]">日期</th>
+                        <th className="p-5 w-1/4">A餐</th>
+                        <th className="p-5 w-1/4">B餐</th>
+                        <th className="p-5 w-1/4 rounded-tr-[2rem]">C餐</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 font-bold text-sm text-slate-700">
+                       {monthMenuData.map(day => {
+                         const isSunday = day.dayOfWeek === '日';
+                         return (
+                           <tr key={day.dateStr} className={`hover:bg-orange-50/30 transition-colors ${isSunday ? 'bg-slate-50/80 text-slate-400' : ''}`}>
+                             <td className="p-5 pl-8 flex items-center gap-3">
+                                <span className={`text-xl font-black ${isSunday ? 'text-slate-400' : 'text-slate-800'}`}>{day.dateStr.substring(8, 10)}</span>
+                                <span className={`text-[10px] px-2 py-1 rounded-md font-black ${isSunday ? 'bg-red-100 text-red-500' : 'bg-slate-200 text-slate-600'}`}>星期{day.dayOfWeek}</span>
+                             </td>
+                             <td className={`p-5 ${day.A ? 'text-orange-600' : 'text-slate-300'}`}>{day.A || '未設定'}</td>
+                             <td className={`p-5 ${day.B ? 'text-blue-600' : 'text-slate-300'}`}>{day.B || '未設定'}</td>
+                             <td className={`p-5 ${day.C ? 'text-emerald-600' : 'text-slate-300'}`}>{day.C || '未設定'}</td>
+                           </tr>
+                         );
+                       })}
+                    </tbody>
+                 </table>
+              </div>
+            </div>
+          );
+        })()}
 
         {activeTab === 'dishes' && (
           <div className="space-y-6 animate-in fade-in duration-500">
