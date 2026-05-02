@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, ClipboardList, ChefHat, 
   Upload, Search, Plus, Download, Edit2, Check, X, Calendar as CalendarIcon, 
@@ -402,6 +402,7 @@ export default function App() {
   };
   const handleLogout = async () => { if (window.confirm("確定要登出系統嗎？")) await signOut(auth); };
 
+  // 🔔 實時監聽訂單 (包含鈴聲通知)
   useEffect(() => {
     if (!user) return;
     const qOrders = query(collection(db, 'orders'), where("date", "==", selectedDate));
@@ -563,6 +564,7 @@ export default function App() {
     reader.readAsArrayBuffer(file);
   };
 
+  // 🌟 導出廠房出貨單 (Excel) - 已移除推薦碼
   const exportFactoryExcel = () => {
     if (!window.XLSX) return alert("請確保已載入 XLSX 庫");
     const exportData = [];
@@ -591,8 +593,7 @@ export default function App() {
         "例湯數量": o.soupQty || 0,
         "餐具": c.needsUtensils ? "需要" : "不需要",
         "菜單": c.needsMenu ? "附菜單" : "-",
-        "特別要求": c.requirement || "",
-        "推薦碼": o.referralCode || "-"
+        "特別要求": c.requirement || ""
       });
     });
 
@@ -899,11 +900,110 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'blogs' && (<div className="space-y-8 animate-in fade-in duration-500"><div className="flex justify-between items-center bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100"><div><h3 className="text-2xl font-black text-slate-800">健康資訊管理</h3></div><button onClick={() => setEditingBlog({})} className="bg-orange-500 text-white px-6 py-4 rounded-2xl font-black shadow-lg"><Plus size={18}/> 新增文章</button></div><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">{blogs.map(blog => (<div key={blog.id} className="bg-white p-8 rounded-[2.5rem] border shadow-sm"><div className="flex justify-between mb-4"><span className="text-[10px] font-black px-3 py-1 rounded-full bg-orange-50 text-orange-500">{blog.category}</span></div><h4 className="text-xl font-black mb-3">{blog.title}</h4><button onClick={() => setEditingBlog(blog)} className="w-full py-3 bg-slate-50 rounded-xl font-black text-sm">修改文章</button></div>))}</div></div>)}
-        
-        {activeTab === 'add' && (<div className="max-w-4xl mx-auto space-y-8"><div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center"><Upload size={56} className="text-orange-500 mb-8" /><h3 className="text-2xl font-black mb-4">全月批量訂單導入 (Excel)</h3><label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer">選擇檔案導入<input type="file" onChange={handleMassImportOrders} className="hidden" /></label></div><div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center"><Users size={56} className="text-blue-500 mb-8" /><h3 className="text-2xl font-black mb-4">批量導入客戶資料表</h3><label className="bg-blue-600 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer">選擇客戶表導入<input type="file" onChange={handleCustImport} className="hidden" /></label></div></div>)}
-        
-        {activeTab === 'settings' && (<div className="grid grid-cols-2 gap-8"><div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100"><h3 className="text-2xl font-black mb-6">系統選項設定</h3></div></div>)}
+        {activeTab === 'blogs' && (
+          <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="flex justify-between items-center bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+              <div><h3 className="text-2xl font-black text-slate-800">健康資訊管理</h3></div>
+              <button onClick={() => setEditingBlog({})} className="bg-orange-500 text-white px-6 py-4 rounded-2xl font-black shadow-lg"><Plus size={18}/> 新增文章</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {blogs.map(blog => (
+                <div key={blog.id} className="bg-white p-8 rounded-[2.5rem] border shadow-sm">
+                  <div className="flex justify-between mb-4"><span className="text-[10px] font-black px-3 py-1 rounded-full bg-orange-50 text-orange-500">{blog.category}</span></div>
+                  <h4 className="text-xl font-black mb-3">{blog.title}</h4>
+                  <button onClick={() => setEditingBlog(blog)} className="w-full py-3 bg-slate-50 rounded-xl font-black text-sm">修改文章</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 🌟 完整還原：系統選項設定 */}
+        {activeTab === 'settings' && (
+          <div className="grid grid-cols-2 gap-8 animate-in fade-in duration-500">
+            <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+              <h3 className="text-2xl font-black mb-6">派送路線設定</h3>
+              <div className="flex gap-2 mb-6">
+                <input id="newZoneInput" placeholder="輸入新路線名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" />
+                <button onClick={async () => {
+                  const val = document.getElementById('newZoneInput').value.trim();
+                  if (val && !(sysSettings.zones || []).includes(val)) {
+                    const newZones = [...(sysSettings.zones || []), val];
+                    await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones });
+                    document.getElementById('newZoneInput').value = '';
+                  }
+                }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button>
+              </div>
+              <div className="space-y-2">
+                {(sysSettings.zones || []).map(z => (
+                  <div key={z} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold">
+                    <span>{z}</span>
+                    <button onClick={async () => {
+                      if(window.confirm(`確定刪除路線「${z}」？`)) {
+                        const newZones = sysSettings.zones.filter(item => item !== z);
+                        await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones });
+                      }
+                    }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+              <h3 className="text-2xl font-black mb-6">CCSV 機構選項設定</h3>
+              <div className="flex gap-2 mb-6">
+                <input id="newInstInput" placeholder="輸入新機構名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" />
+                <button onClick={async () => {
+                  const val = document.getElementById('newInstInput').value.trim();
+                  if (val && !(sysSettings.institutions || []).includes(val)) {
+                    const newInst = [...(sysSettings.institutions || []), val];
+                    await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst });
+                    document.getElementById('newInstInput').value = '';
+                  }
+                }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button>
+              </div>
+              <div className="space-y-2">
+                {(sysSettings.institutions || []).map(inst => (
+                  <div key={inst} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold">
+                    <span>{inst}</span>
+                    <button onClick={async () => {
+                      if(window.confirm(`確定刪除機構「${inst}」？`)) {
+                        const newInst = sysSettings.institutions.filter(item => item !== inst);
+                        await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst });
+                      }
+                    }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🌟 完整還原：批量導入 */}
+        {activeTab === 'add' && (
+           <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
+               <Upload size={56} className="text-orange-500 mb-8" />
+               <h3 className="text-2xl font-black mb-4">全月批量訂單導入 (Excel)</h3>
+               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">
+                 支援「25A」或「15B-」格式。橫向填寫 1-31 號之點餐數量及類別。
+               </p>
+               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">
+                 選擇檔案導入<input type="file" onChange={handleMassImportOrders} className="hidden" />
+               </label>
+             </div>
+             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
+               <Users size={56} className="text-blue-500 mb-8" />
+               <h3 className="text-2xl font-black mb-4">批量導入客戶基本資料表</h3>
+               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">
+                 請確保 Excel 包含 ID, 姓名, 電話, 地址 等必要欄位。
+               </p>
+               <label className="bg-blue-600 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-blue-700 transition-all shadow-xl active:scale-95">
+                 選擇客戶表導入<input type="file" onChange={handleCustImport} className="hidden" />
+               </label>
+             </div>
+           </div>
+        )}
 
         {/* Modals */}
         {selectedCustomer && (<CustomerCalendar customer={selectedCustomer} currentMonth={currentMonth} setCurrentMonth={setCurrentMonth} currentYear={currentYear} menus={menus} db={db} onClose={() => setSelectedCustomer(null)} />)}
