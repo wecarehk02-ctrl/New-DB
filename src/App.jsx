@@ -843,4 +843,88 @@ export default function App() {
         {activeTab === 'add' && (
            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
              <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
-               <Upload size={56} className="text-orange
+               <Upload size={56} className="text-orange-500 mb-8" />
+               <h3 className="text-2xl font-black mb-4">全月批量訂單導入 (Excel)</h3>
+               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">支援「25A」或「15B-」格式。橫向填寫 1-31 號之點餐數量及類別。</p>
+               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">選擇檔案導入<input type="file" onChange={handleMassImportOrders} className="hidden" /></label>
+             </div>
+             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
+               <Users size={56} className="text-blue-500 mb-8" />
+               <h3 className="text-2xl font-black mb-4">批量導入客戶基本資料表</h3>
+               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">請確保 Excel 包含 ID, 姓名, 電話, 地址 等必要欄位。</p>
+               <label className="bg-blue-600 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-blue-700 transition-all shadow-xl active:scale-95">選擇客戶表導入<input type="file" onChange={handleCustImport} className="hidden" /></label>
+             </div>
+           </div>
+        )}
+        
+        {activeTab === 'settings' && (
+          <div className="grid grid-cols-2 gap-8 animate-in fade-in duration-500">
+            <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+              <h3 className="text-2xl font-black mb-6">派送路線設定</h3>
+              <div className="flex gap-2 mb-6">
+                <input id="newZoneInput" placeholder="輸入新路線名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" />
+                <button onClick={async () => {
+                  const val = document.getElementById('newZoneInput').value.trim();
+                  if (val && !(sysSettings.zones || []).includes(val)) {
+                    const newZones = [...(sysSettings.zones || []), val];
+                    await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones });
+                    document.getElementById('newZoneInput').value = '';
+                  }
+                }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button>
+              </div>
+              <div className="space-y-2">
+                {(sysSettings.zones || []).map(z => (
+                  <div key={z} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold">
+                    <span>{z}</span>
+                    <button onClick={async () => {
+                      if(window.confirm(`確定刪除路線「${z}」？`)) {
+                        const newZones = sysSettings.zones.filter(item => item !== z);
+                        await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones });
+                      }
+                    }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
+              <h3 className="text-2xl font-black mb-6">CCSV 機構選項設定</h3>
+              <div className="flex gap-2 mb-6">
+                <input id="newInstInput" placeholder="輸入新機構名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" />
+                <button onClick={async () => {
+                  const val = document.getElementById('newInstInput').value.trim();
+                  if (val && !(sysSettings.institutions || []).includes(val)) {
+                    const newInst = [...(sysSettings.institutions || []), val];
+                    await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst });
+                    document.getElementById('newInstInput').value = '';
+                  }
+                }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button>
+              </div>
+              <div className="space-y-2">
+                {(sysSettings.institutions || []).map(inst => (
+                  <div key={inst} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold">
+                    <span>{inst}</span>
+                    <button onClick={async () => {
+                      if(window.confirm(`確定刪除機構「${inst}」？`)) {
+                        const newInst = sysSettings.institutions.filter(item => item !== inst);
+                        await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst });
+                      }
+                    }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modals */}
+        {selectedCustomer && (<CustomerCalendar customer={selectedCustomer} currentMonth={currentMonth} setCurrentMonth={setCurrentMonth} currentYear={currentYear} menus={menus} db={db} onClose={() => setSelectedCustomer(null)} />)}
+        {editingCustomer && (<CustomerEditModal customer={editingCustomer} db={db} sysSettings={sysSettings} onClose={() => setEditingCustomer(null)} />)}
+        {editingBlog && (<BlogEditModal blog={editingBlog} db={db} onClose={() => setEditingBlog(null)} />)}
+        {editingDish && (<DishEditModal dish={editingDish} db={db} onClose={() => setEditingDish(null)} />)}
+        {editingMenuDate && (<MenuEditModal dateStr={editingMenuDate.dateStr} currentMenu={editingMenuDate.currentMenu} db={db} processDish={processDish} onClose={() => setEditingMenuDate(null)} />)}
+      </main>
+      <style>{`::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }`}</style>
+    </div>
+  );
+}
