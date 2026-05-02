@@ -10,6 +10,9 @@ import {
 } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
+// 🌟 新增 Storage 模組用作圖片上傳
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+
 // ==========================================
 // 🚀 Firebase 設定
 // ==========================================
@@ -23,11 +26,12 @@ const firebaseConfig = {
   measurementId: "G-HZYF083SFN"
 };
 
-let app, auth, db, initError = null;
+let app, auth, db, storage, initError = null;
 try { 
   app = initializeApp(firebaseConfig); 
   auth = getAuth(app); 
   db = getFirestore(app); 
+  storage = getStorage(app); // 🌟 初始化 Storage
 } catch (error) { 
   initError = error.message; 
 }
@@ -45,11 +49,12 @@ const getLocalDateFormat = (date) => {
 };
 
 // ==========================================
-// 彈窗組件：SKU 標籤與營養設定
+// 彈窗組件：SKU 標籤與營養設定 (🌟 加入圖片上傳)
 // ==========================================
 const DishEditModal = ({ dish, onClose, db }) => {
   const [form, setForm] = useState(dish);
   const [tagInput, setTagInput] = useState((dish.tags || []).join(', '));
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleSave = async () => {
     const safeDocId = form.name.replace(/\//g, '或');
@@ -58,22 +63,47 @@ const DishEditModal = ({ dish, onClose, db }) => {
       await setDoc(doc(db, 'dishes', safeDocId), { ...form, tags: tagsArray }, { merge: true });
       alert("菜品標籤及營養資料已更新！"); 
       onClose();
-    } catch (err) { 
-      alert("儲存失敗：" + err.message); 
+    } catch (err) { alert("儲存失敗：" + err.message); }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    setIsUploading(true);
+    try {
+      const storageRef = sRef(storage, `dishes/${form.sku}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setForm({...form, imageUrl: url});
+      alert("圖片上傳成功！");
+    } catch(err) {
+      alert("圖片上傳失敗：" + err.message);
     }
+    setIsUploading(false);
   };
 
   return (
     <div className="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl">
          <div className="p-8 border-b flex justify-between items-center bg-slate-50">
-          <div>
-            <h3 className="text-2xl font-black">{form.name}</h3>
-            <p className="text-sm font-bold text-orange-500 mt-1">母 SKU: {form.sku}</p>
-          </div>
+          <div><h3 className="text-2xl font-black">{form.name}</h3><p className="text-sm font-bold text-orange-500 mt-1">母 SKU: {form.sku}</p></div>
           <button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300"><X size={20}/></button>
         </div>
         <div className="p-8 space-y-6">
+          <div className="space-y-2">
+             <label className="text-[10px] font-black text-slate-400 uppercase ml-1">產品圖片展示</label>
+             <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl">
+               {form.imageUrl ? (
+                 <img src={form.imageUrl} alt="preview" className="w-16 h-16 object-cover rounded-xl border-2 border-slate-200 shadow-sm" />
+               ) : (
+                 <div className="w-16 h-16 bg-slate-200 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400"><Soup size={24}/></div>
+               )}
+               <div className="flex flex-col gap-1">
+                 <input type="file" accept="image/*" onChange={handleImageUpload} className="text-sm font-bold text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer" />
+                 {isUploading && <span className="text-xs text-orange-500 font-bold">圖片上傳中...</span>}
+               </div>
+             </div>
+          </div>
           <div className="space-y-2">
              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">功能標籤 (以逗號分隔，例如：低脂,高蛋白)</label>
              <input value={tagInput} onChange={e => setTagInput(e.target.value)} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="輸入標籤..."/>
@@ -106,133 +136,42 @@ const MenuEditModal = ({ dateStr, currentMenu, onClose, db, processDish }) => {
       if(form.B) await processDish(form.B);
       if(form.C) await processDish(form.C);
       await setDoc(doc(db, 'menus', dateStr), { date: dateStr, ...form }, { merge: true });
-      alert("當日餐單已更新！"); 
-      onClose();
-    } catch (err) { 
-      alert("儲存失敗：" + err.message); 
-    }
+      alert("當日餐單已更新！"); onClose();
+    } catch (err) { alert("儲存失敗：" + err.message); }
   };
 
   return (
     <div className="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl">
-         <div className="p-8 border-b flex justify-between items-center bg-slate-50">
-           <h3 className="text-2xl font-black">修改餐單 ({dateStr})</h3>
-           <button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300"><X size={20}/></button>
-         </div>
+         <div className="p-8 border-b flex justify-between items-center bg-slate-50"><h3 className="text-2xl font-black">修改餐單 ({dateStr})</h3><button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300"><X size={20}/></button></div>
         <div className="p-8 space-y-6">
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">A 餐</label><input value={form.A} onChange={e => setForm({...form, A: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">B 餐</label><input value={form.B} onChange={e => setForm({...form, B: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">C 餐</label><input value={form.C} onChange={e => setForm({...form, C: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
           <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">是日滋潤例湯</label><input value={form.Soup || ''} onChange={e => setForm({...form, Soup: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="例如：粉葛豬骨湯" /></div>
         </div>
-        <div className="p-8 border-t bg-slate-50 flex justify-end gap-3">
-          <button onClick={onClose} className="font-black text-slate-400 px-6">取消</button>
-          <button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl shadow-lg flex items-center gap-2"><Check size={18}/> 儲存更新</button>
-        </div>
+        <div className="p-8 border-t bg-slate-50 flex justify-end gap-3"><button onClick={onClose} className="font-black text-slate-400 px-6">取消</button><button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl shadow-lg flex items-center gap-2"><Check size={18}/> 儲存更新</button></div>
       </div>
     </div>
   );
 };
 
-// ==========================================
-// 彈窗組件：Blog 編輯
-// ==========================================
 const BlogEditModal = ({ blog, onClose, db }) => {
   const [form, setForm] = useState(blog || { title: '', category: '節氣養生', date: getLocalDateFormat(new Date()), summary: '', content: '' });
-  
-  const handleSave = async () => { 
-    if (!form.title || !form.content) return alert("標題同內容唔可以留空！"); 
-    try { 
-      const docRef = form.id ? doc(db, 'blogs', form.id) : doc(collection(db, 'blogs')); 
-      await setDoc(docRef, form, { merge: true }); 
-      alert("文章儲存成功！"); 
-      onClose(); 
-    } catch (err) { alert("儲存失敗：" + err.message); } 
-  };
-  
-  const handleDelete = async () => { 
-    if (window.confirm(`確定要刪除文章「${form.title}」？`)) { 
-      await deleteDoc(doc(db, 'blogs', form.id)); 
-      onClose(); 
-    } 
-  };
-  
-  return ( 
-    <div className="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-3xl overflow-hidden shadow-2xl">
-        <div className="p-8 border-b flex justify-between items-center bg-slate-50">
-          <h3 className="text-2xl font-black">{form.id ? '編輯文章' : '新增健康資訊'}</h3>
-          <button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300"><X size={20}/></button>
-        </div>
-        <div className="p-8 space-y-6">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">標題</label><input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-            <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">分類</label><input value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          </div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">簡介</label><input value={form.summary} onChange={e => setForm({...form, summary: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">詳細內容</label><textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold min-h-[200px] resize-none"></textarea></div>
-        </div>
-        <div className="p-8 border-t bg-slate-50 flex justify-between items-center">
-          {form.id ? <button onClick={handleDelete} className="text-red-500 font-black hover:bg-red-100 px-4 py-2 rounded-xl flex items-center gap-2"><Trash2 size={18}/> 刪除文章</button> : <div></div>}
-          <div className="flex gap-3"><button onClick={onClose} className="font-black text-slate-400 px-6">取消</button><button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl shadow-lg flex items-center gap-2"><Check size={18}/> 儲存發佈</button></div>
-        </div>
-      </div>
-    </div> 
-  );
+  const handleSave = async () => { if (!form.title || !form.content) return alert("標題同內容唔可以留空！"); try { const docRef = form.id ? doc(db, 'blogs', form.id) : doc(collection(db, 'blogs')); await setDoc(docRef, form, { merge: true }); alert("文章儲存成功！"); onClose(); } catch (err) { alert("儲存失敗：" + err.message); } };
+  const handleDelete = async () => { if (window.confirm(`確定要刪除文章「${form.title}」？`)) { await deleteDoc(doc(db, 'blogs', form.id)); onClose(); } };
+  return ( <div className="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-[2.5rem] w-full max-w-3xl overflow-hidden shadow-2xl"><div className="p-8 border-b flex justify-between items-center bg-slate-50"><h3 className="text-2xl font-black">{form.id ? '編輯文章' : '新增健康資訊'}</h3><button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300"><X size={20}/></button></div><div className="p-8 space-y-6"><div className="grid grid-cols-2 gap-6"><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">標題</label><input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">分類</label><input value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">簡介</label><input value={form.summary} onChange={e => setForm({...form, summary: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">詳細內容</label><textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold min-h-[200px] resize-none"></textarea></div></div><div className="p-8 border-t bg-slate-50 flex justify-between items-center">{form.id ? <button onClick={handleDelete} className="text-red-500 font-black hover:bg-red-100 px-4 py-2 rounded-xl flex items-center gap-2"><Trash2 size={18}/> 刪除文章</button> : <div></div>}<div className="flex gap-3"><button onClick={onClose} className="font-black text-slate-400 px-6">取消</button><button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl shadow-lg flex items-center gap-2"><Check size={18}/> 儲存發佈</button></div></div></div></div> );
 };
 
-// ==========================================
-// 彈窗組件：客戶資料編輯
-// ==========================================
 const CustomerEditModal = ({ customer, onClose, db, sysSettings }) => {
   const [form, setForm] = useState(customer);
-  
-  const handleSave = async () => { 
-    try { 
-      await setDoc(doc(db, 'customers', customer.id), form, { merge: true }); 
-      alert("資料已更新！"); 
-      onClose(); 
-    } catch (err) { alert("更新失敗：" + err.message); } 
-  };
-  
-  const handleDelete = async () => { 
-    if (window.confirm(`⚠️ 警告：確定要永久刪除客戶「${customer.name}」嗎？`)) { 
-      await deleteDoc(doc(db, 'customers', customer.id)); 
-      alert("客戶資料已徹底刪除。"); 
-      onClose(); 
-    } 
-  };
-  
-  return ( 
-    <div className="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-3xl overflow-hidden shadow-2xl">
-        <div className="p-8 border-b flex justify-between items-center bg-slate-50">
-          <div><h3 className="text-2xl font-black">修改客戶資料</h3><p className="text-xs font-bold text-slate-400 mt-1">ID: {customer.id}</p></div>
-          <button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300"><X size={20}/></button>
-        </div>
-        <div className="p-8 grid grid-cols-2 gap-6">
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">姓名 (長者/用膳者)</label><input value={form.name || ''} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">聯絡人名稱 (如子女)</label><input value={form.contactName || ''} onChange={e => setForm({...form, contactName: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="未提供" /></div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">電話</label><input value={form.phone || ''} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">線路</label><select value={form.zone || ''} onChange={e => setForm({...form, zone: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"><option value="">請選擇...</option>{(sysSettings?.zones || []).map(z => <option key={z} value={z}>{z}</option>)}</select></div>
-          <div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">地址</label><input value={form.address || ''} onChange={e => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">機構</label><select value={form.institution || ''} onChange={e => setForm({...form, institution: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"><option value="">獨立個人</option>{(sysSettings?.institutions || []).map(inst => <option key={inst} value={inst}>{inst}</option>)}</select></div>
-          <div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">客戶類型</label><select value={form.type || ''} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"><option value="">請選擇...</option>{CUST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-          <div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">特別要求</label><input value={form.requirement || ''} onChange={e => setForm({...form, requirement: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div>
-          <div className="space-y-2 col-span-2 flex gap-6 p-4 bg-slate-50 rounded-2xl"><label className="flex items-center gap-3 cursor-pointer font-bold"><input type="checkbox" checked={form.needsUtensils || false} onChange={e => setForm({...form, needsUtensils: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />需要餐具 🍴</label><label className="flex items-center gap-3 cursor-pointer font-bold"><input type="checkbox" checked={form.needsMenu || false} onChange={e => setForm({...form, needsMenu: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />附菜單 📄</label></div>
-        </div>
-        <div className="p-8 border-t bg-slate-50 flex justify-between items-center">
-          <button onClick={handleDelete} className="text-red-500 font-black hover:bg-red-100 p-4 rounded-2xl flex gap-2"><Trash2 size={18}/> 刪除</button>
-          <div className="flex gap-3"><button onClick={onClose} className="font-black text-slate-400 px-6">取消</button><button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl shadow-lg flex gap-2"><Check size={18}/> 儲存</button></div>
-        </div>
-      </div>
-    </div> 
-  );
+  const handleSave = async () => { try { await setDoc(doc(db, 'customers', customer.id), form, { merge: true }); alert("資料已更新！"); onClose(); } catch (err) { alert("更新失敗：" + err.message); } };
+  const handleDelete = async () => { if (window.confirm(`⚠️ 警告：確定要永久刪除客戶「${customer.name}」嗎？`)) { await deleteDoc(doc(db, 'customers', customer.id)); alert("客戶資料已徹底刪除。"); onClose(); } };
+  return ( <div className="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-[2.5rem] w-full max-w-3xl overflow-hidden shadow-2xl"><div className="p-8 border-b flex justify-between items-center bg-slate-50"><div><h3 className="text-2xl font-black">修改客戶資料</h3><p className="text-xs font-bold text-slate-400 mt-1">ID: {customer.id}</p></div><button onClick={onClose} className="p-3 bg-slate-200 rounded-xl hover:bg-slate-300"><X size={20}/></button></div><div className="p-8 grid grid-cols-2 gap-6"><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">姓名</label><input value={form.name || ''} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">聯絡人名稱 (如子女)</label><input value={form.contactName || ''} onChange={e => setForm({...form, contactName: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" placeholder="未提供" /></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">電話</label><input value={form.phone || ''} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">線路</label><select value={form.zone || ''} onChange={e => setForm({...form, zone: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"><option value="">請選擇...</option>{(sysSettings?.zones || []).map(z => <option key={z} value={z}>{z}</option>)}</select></div><div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">地址</label><input value={form.address || ''} onChange={e => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">機構</label><select value={form.institution || ''} onChange={e => setForm({...form, institution: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"><option value="">獨立個人</option>{(sysSettings?.institutions || []).map(inst => <option key={inst} value={inst}>{inst}</option>)}</select></div><div className="space-y-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">客戶類型</label><select value={form.type || ''} onChange={e => setForm({...form, type: e.target.value})} className="w-full bg-slate-50 p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"><option value="">請選擇...</option>{CUST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div><div className="space-y-2 col-span-2"><label className="text-[10px] font-black text-slate-400 uppercase ml-1">特別要求</label><input value={form.requirement || ''} onChange={e => setForm({...form, requirement: e.target.value})} className="w-full bg-slate-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold" /></div><div className="space-y-2 col-span-2 flex gap-6 p-4 bg-slate-50 rounded-2xl"><label className="flex items-center gap-3 cursor-pointer font-bold"><input type="checkbox" checked={form.needsUtensils || false} onChange={e => setForm({...form, needsUtensils: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />需要餐具 🍴</label><label className="flex items-center gap-3 cursor-pointer font-bold"><input type="checkbox" checked={form.needsMenu || false} onChange={e => setForm({...form, needsMenu: e.target.checked})} className="w-5 h-5 accent-orange-500 cursor-pointer" />附菜單 📄</label></div></div><div className="p-8 border-t bg-slate-50 flex justify-between items-center"><button onClick={handleDelete} className="text-red-500 font-black hover:bg-red-100 p-4 rounded-2xl flex gap-2"><Trash2 size={18}/> 刪除</button><div className="flex gap-3"><button onClick={onClose} className="font-black text-slate-400 px-6">取消</button><button onClick={handleSave} className="bg-slate-900 text-white font-black px-8 py-4 rounded-2xl shadow-lg flex gap-2"><Check size={18}/> 儲存</button></div></div></div></div> );
 };
 
 // ==========================================
-// 📅 月曆點餐組件 (客戶專屬月曆)
+// 📅 月曆點餐組件
 // ==========================================
 const CustomerCalendar = ({ customer, currentMonth, setCurrentMonth, currentYear, menus, onClose, db }) => {
   const [monthOrders, setMonthOrders] = useState([]);
@@ -402,7 +341,6 @@ export default function App() {
   };
   const handleLogout = async () => { if (window.confirm("確定要登出系統嗎？")) await signOut(auth); };
 
-  // 🔔 實時監聽訂單 (包含鈴聲通知)
   useEffect(() => {
     if (!user) return;
     const qOrders = query(collection(db, 'orders'), where("date", "==", selectedDate));
@@ -564,7 +502,6 @@ export default function App() {
     reader.readAsArrayBuffer(file);
   };
 
-  // 🌟 導出廠房出貨單 (Excel) - 已移除推薦碼
   const exportFactoryExcel = () => {
     if (!window.XLSX) return alert("請確保已載入 XLSX 庫");
     const exportData = [];
@@ -900,119 +837,10 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'blogs' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex justify-between items-center bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-              <div><h3 className="text-2xl font-black text-slate-800">健康資訊管理</h3></div>
-              <button onClick={() => setEditingBlog({})} className="bg-orange-500 text-white px-6 py-4 rounded-2xl font-black shadow-lg"><Plus size={18}/> 新增文章</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {blogs.map(blog => (
-                <div key={blog.id} className="bg-white p-8 rounded-[2.5rem] border shadow-sm">
-                  <div className="flex justify-between mb-4"><span className="text-[10px] font-black px-3 py-1 rounded-full bg-orange-50 text-orange-500">{blog.category}</span></div>
-                  <h4 className="text-xl font-black mb-3">{blog.title}</h4>
-                  <button onClick={() => setEditingBlog(blog)} className="w-full py-3 bg-slate-50 rounded-xl font-black text-sm">修改文章</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 🌟 完整還原：系統選項設定 */}
-        {activeTab === 'settings' && (
-          <div className="grid grid-cols-2 gap-8 animate-in fade-in duration-500">
-            <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
-              <h3 className="text-2xl font-black mb-6">派送路線設定</h3>
-              <div className="flex gap-2 mb-6">
-                <input id="newZoneInput" placeholder="輸入新路線名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" />
-                <button onClick={async () => {
-                  const val = document.getElementById('newZoneInput').value.trim();
-                  if (val && !(sysSettings.zones || []).includes(val)) {
-                    const newZones = [...(sysSettings.zones || []), val];
-                    await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones });
-                    document.getElementById('newZoneInput').value = '';
-                  }
-                }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button>
-              </div>
-              <div className="space-y-2">
-                {(sysSettings.zones || []).map(z => (
-                  <div key={z} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold">
-                    <span>{z}</span>
-                    <button onClick={async () => {
-                      if(window.confirm(`確定刪除路線「${z}」？`)) {
-                        const newZones = sysSettings.zones.filter(item => item !== z);
-                        await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, zones: newZones });
-                      }
-                    }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
-              <h3 className="text-2xl font-black mb-6">CCSV 機構選項設定</h3>
-              <div className="flex gap-2 mb-6">
-                <input id="newInstInput" placeholder="輸入新機構名稱..." className="flex-1 bg-slate-50 p-4 rounded-2xl font-bold outline-none" />
-                <button onClick={async () => {
-                  const val = document.getElementById('newInstInput').value.trim();
-                  if (val && !(sysSettings.institutions || []).includes(val)) {
-                    const newInst = [...(sysSettings.institutions || []), val];
-                    await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst });
-                    document.getElementById('newInstInput').value = '';
-                  }
-                }} className="bg-slate-900 text-white px-6 rounded-2xl font-black hover:bg-orange-500 transition-all"><Plus size={20}/></button>
-              </div>
-              <div className="space-y-2">
-                {(sysSettings.institutions || []).map(inst => (
-                  <div key={inst} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl font-bold">
-                    <span>{inst}</span>
-                    <button onClick={async () => {
-                      if(window.confirm(`確定刪除機構「${inst}」？`)) {
-                        const newInst = sysSettings.institutions.filter(item => item !== inst);
-                        await setDoc(doc(db, 'settings', 'options'), { ...sysSettings, institutions: newInst });
-                      }
-                    }} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 🌟 完整還原：批量導入 */}
+        {activeTab === 'blogs' && (<div className="space-y-8 animate-in fade-in duration-500"><div className="flex justify-between items-center bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100"><div><h3 className="text-2xl font-black text-slate-800">健康資訊管理</h3></div><button onClick={() => setEditingBlog({})} className="bg-orange-500 text-white px-6 py-4 rounded-2xl font-black shadow-lg"><Plus size={18}/> 新增文章</button></div><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">{blogs.map(blog => (<div key={blog.id} className="bg-white p-8 rounded-[2.5rem] border shadow-sm"><div className="flex justify-between mb-4"><span className="text-[10px] font-black px-3 py-1 rounded-full bg-orange-50 text-orange-500">{blog.category}</span></div><h4 className="text-xl font-black mb-3">{blog.title}</h4><button onClick={() => setEditingBlog(blog)} className="w-full py-3 bg-slate-50 rounded-xl font-black text-sm">修改文章</button></div>))}</div></div>)}
+        
+        {/* 🌟 完整重現：系統選項設定與批量導入 */}
         {activeTab === 'add' && (
            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
              <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
-               <Upload size={56} className="text-orange-500 mb-8" />
-               <h3 className="text-2xl font-black mb-4">全月批量訂單導入 (Excel)</h3>
-               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">
-                 支援「25A」或「15B-」格式。橫向填寫 1-31 號之點餐數量及類別。
-               </p>
-               <label className="bg-orange-500 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-orange-600 transition-all shadow-xl active:scale-95">
-                 選擇檔案導入<input type="file" onChange={handleMassImportOrders} className="hidden" />
-               </label>
-             </div>
-             <div className="bg-white p-16 rounded-[4rem] shadow-sm border-4 border-dashed border-slate-100 flex flex-col items-center text-center">
-               <Users size={56} className="text-blue-500 mb-8" />
-               <h3 className="text-2xl font-black mb-4">批量導入客戶基本資料表</h3>
-               <p className="text-sm text-slate-400 mb-10 max-w-md font-bold uppercase tracking-widest italic leading-relaxed">
-                 請確保 Excel 包含 ID, 姓名, 電話, 地址 等必要欄位。
-               </p>
-               <label className="bg-blue-600 text-white px-12 py-5 rounded-3xl font-black text-lg cursor-pointer hover:bg-blue-700 transition-all shadow-xl active:scale-95">
-                 選擇客戶表導入<input type="file" onChange={handleCustImport} className="hidden" />
-               </label>
-             </div>
-           </div>
-        )}
-
-        {/* Modals */}
-        {selectedCustomer && (<CustomerCalendar customer={selectedCustomer} currentMonth={currentMonth} setCurrentMonth={setCurrentMonth} currentYear={currentYear} menus={menus} db={db} onClose={() => setSelectedCustomer(null)} />)}
-        {editingCustomer && (<CustomerEditModal customer={editingCustomer} db={db} sysSettings={sysSettings} onClose={() => setEditingCustomer(null)} />)}
-        {editingBlog && (<BlogEditModal blog={editingBlog} db={db} onClose={() => setEditingBlog(null)} />)}
-        {editingDish && (<DishEditModal dish={editingDish} db={db} onClose={() => setEditingDish(null)} />)}
-        {editingMenuDate && (<MenuEditModal dateStr={editingMenuDate.dateStr} currentMenu={editingMenuDate.currentMenu} db={db} processDish={processDish} onClose={() => setEditingMenuDate(null)} />)}
-      </main>
-      <style>{`::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }`}</style>
-    </div>
-  );
-}
+               <Upload size={56} className="text-orange
